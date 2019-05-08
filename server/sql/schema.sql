@@ -1,0 +1,20 @@
+DROP DATABASE IF EXISTS pcbv;
+CREATE DATABASE pcbv;
+USE pcbv;
+
+DROP TABLE IF EXISTS Circuits;
+CREATE TABLE Circuits {
+	CircuitID INT,
+
+	PRIMARY KEY (CircuitID)
+}
+DROP TABLE IF EXISTS Components;
+CREATE TABLE Components {
+	ComponentID INT
+	CircuitID INT,
+	
+	FOREIGN KEY (CircuitID)
+		REFERENCES Circuits(CircuitID)
+		ON DELETE CASCADE,
+	PRIMARY KEY (ComponentID)
+}
