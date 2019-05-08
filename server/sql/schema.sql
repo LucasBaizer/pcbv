@@ -3,18 +3,69 @@ CREATE DATABASE pcbv;
 USE pcbv;
 
 DROP TABLE IF EXISTS Circuits;
-CREATE TABLE Circuits {
-	CircuitID INT,
+CREATE TABLE Circuits (
+	CircuitID VARCHAR(36),
+	Name VARCHAR(255),
+	Image LONGBLOB,
 
 	PRIMARY KEY (CircuitID)
-}
-DROP TABLE IF EXISTS Components;
-CREATE TABLE Components {
-	ComponentID INT
-	CircuitID INT,
-	
+);
+DROP TABLE IF EXISTS SubCircuits;
+CREATE TABLE SubCircuits (
+	SubCircuitID INT NOT NULL AUTO_INCREMENT,
+	ParentCircuitID VARCHAR(36),
+	IsRoot BOOLEAN,
+	Image LONGBLOG,
+
+	FOREIGN KEY (ParentCircuitID)
+		REFERENCES Circuits(CircuitID)
+		ON DELETE CASCADE,
+	PRIMARY KEY (SubCircuitID)
+);
+
+DROP TABLE IF EXISTS Categories;
+CREATE TABLE Categories (
+	CategoryID INT NOT NULL AUTO_INCREMENT,
+	CircuitID VARCHAR(36),
+	Name VARCHAR(255),
+	RgbColor VARCHAR(6),
+
 	FOREIGN KEY (CircuitID)
 		REFERENCES Circuits(CircuitID)
 		ON DELETE CASCADE,
+	PRIMARY KEY (CategoryID)
+);
+
+DROP TABLE IF EXISTS Components;
+CREATE TABLE Components (
+	ComponentID INT NOT NULL AUTO_INCREMENT,
+	SubCircuitID INT,
+	RectX INT,
+	RectY INT,
+	RectWidth INT,
+	RectHeight INT,
+	Name VARCHAR(255),
+	Description VARCHAR(1023),
+	DocumentationUrl VARCHAR(1023),
+	CategoryID INT,
+	
+	FOREIGN KEY (SubCircuitID)
+		REFERENCES SubCircuits(SubCircuitID)
+		ON DELETE CASCADE,
+	FOREIGN KEY (CategoryID)
+		REFERENCES Categories(CategoryID)
+		ON DELETE CASCADE,
 	PRIMARY KEY (ComponentID)
-}
+);
+
+DROP TABLE IF EXISTS CategoryTags;
+CREATE TABLE CategoryTags (
+	CategoryTagID INT NOT NULL AUTO_INCREMENT,
+	CategoryID INT,
+	TagContent VARCHAR(255),
+
+	FOREIGN KEY (CategoryID)
+		REFERENCES Categories(CategoryID)
+		ON DELETE CASCADE,
+	PRIMARY KEY (CategoryTagID)
+);

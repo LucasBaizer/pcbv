@@ -1,0 +1,455 @@
+openapi: 3.0.0
+info:
+  title: PCBV REST API
+  description: |
+    This is the API for PCBV. You can learn more on the GitHub page at
+    [https://github.com/LucasBaizer/pcbv](https://github.com/LucasBaizer/pcbv).
+  termsOfService: http://swagger.io/terms
+  contact:
+    email: lucasallenbaizer@gmail.com
+  license:
+    name: MIT
+    url: https://github.com/LucasBaizer/pcbv/tree/master/LICENSE.md
+  version: 0.0.1-oas3
+externalDocs:
+  description: Find out more about PCBV
+  url: https://github.com/LucasBaizer/pcbv
+servers:
+- url: https://pcbv.github.io/api/v1
+tags:
+- name: circuit
+  description: Work with circuits
+paths:
+  /circuit:
+    post:
+      tags:
+      - circuit
+      summary: Creates basic information and the image for a new circuit
+      operationId: createCircuit
+      responses:
+        200:
+          description: Circuit has been created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Circuit'
+        400:
+          description: Invalid request data
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}:
+    get:
+      tags:
+      - circuit
+      summary: Gets basic information and the image of a circuit
+      operationId: getCircuit
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        200:
+          description: Circuit is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Circuit'
+        404:
+          description: Circuit does not exist
+      x-swagger-router-controller: Circuit
+    delete:
+      tags:
+      - circuit
+      summary: Deletes a circuit
+      operationId: circuitCircuitIdDELETE
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successfully deleted circuit
+        404:
+          description: Circuit does not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/subcircuit:
+    get:
+      tags:
+      - circuit
+      summary: Gets basic information and the image of all subcircuits of a circuit
+      operationId: getSubCircuits
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        200:
+          description: Circuit is valid
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubCircuit'
+                x-content-type: application/json
+        404:
+          description: Circuit does not exist
+      x-swagger-router-controller: Circuit
+    post:
+      tags:
+      - circuit
+      summary: Creates basic information and image of a particular subcircuit in a
+        circuit
+      operationId: createSubCircuit
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        description: Data to create for the subcircuit
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubCircuit'
+        required: true
+      responses:
+        200:
+          description: Successfully ceated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubCircuit'
+        400:
+          description: Invalid request data
+        404:
+          description: Circuit does not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/subcircuit/{subCircuitId}:
+    delete:
+      tags:
+      - circuit
+      summary: Deletes a particular subcircuit of a circuit
+      operationId: deleteSubCircuit
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: subCircuitId
+        in: path
+        description: ID of the subcircuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        200:
+          description: Successfully deleted subcircuit
+        404:
+          description: Either circuit or subcircuit does not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/component:
+    get:
+      tags:
+      - circuit
+      summary: Gets root components of a circuit
+      operationId: getCircuitComponents
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        200:
+          description: Circuit is valid
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Component'
+                x-content-type: application/json
+        404:
+          description: Circuit does not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/component/{componentId}:
+    delete:
+      tags:
+      - circuit
+      summary: Deletes a root component from the circuit
+      operationId: deleteCircuitComponent
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: componentId
+        in: path
+        description: ID of the component
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        200:
+          description: Successfully deleted component
+        404:
+          description: Either circuit or component does not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/subcircuit/{subCircuitId}/component:
+    get:
+      tags:
+      - circuit
+      summary: Gets components of a particular subcircuit of a circuit
+      operationId: getSubCircuitComponents
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: subCircuitId
+        in: path
+        description: ID of the subcircuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        200:
+          description: Circuit and subcircuit are valid
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Component'
+                x-content-type: application/json
+        404:
+          description: Either circuit or subcircuit do not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/subcircuit/{subCircuitId}/component/{componentId}:
+    delete:
+      tags:
+      - circuit
+      summary: Deletes a component from a particular subcircuit of a circuit
+      operationId: deleteSubCircuitComponent
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: subCircuitId
+        in: path
+        description: ID of the subcircuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      - name: componentId
+        in: path
+        description: ID of the component
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        200:
+          description: Successfully deleted component
+        404:
+          description: Either circuit, subcircuit, or component does not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/category:
+    get:
+      tags:
+      - circuit
+      summary: Gets categories of a circuit
+      operationId: getCircuitCategories
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        200:
+          description: Circuit is valid
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+                x-content-type: application/json
+        404:
+          description: Circuit does not exist
+      x-swagger-router-controller: Circuit
+    post:
+      tags:
+      - circuit
+      summary: Creates a new circuit category
+      operationId: createCircuitCategory
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successfully created circuit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        400:
+          description: Invalid request data
+        404:
+          description: Circuit does not exist
+      x-swagger-router-controller: Circuit
+  /circuit/{circuitId}/category/{categoryId}:
+    delete:
+      tags:
+      - circuit
+      summary: Deletes a particular category of a circuit
+      operationId: deleteCircuitCategory
+      parameters:
+      - name: circuitId
+        in: path
+        description: GUID of the circuit
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: categoryId
+        in: path
+        description: ID of the category
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        200:
+          description: Successfully deleted category
+        404:
+          description: Either circuit or category does not exist
+      x-swagger-router-controller: Circuit
+components:
+  schemas:
+    Circuit:
+      type: object
+      properties:
+        circuitId:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+    SubCircuit:
+      type: object
+      properties:
+        subCircuitId:
+          type: integer
+          format: int32
+        parentCircuitId:
+          type: string
+        image:
+          type: string
+    Component:
+      type: object
+      properties:
+        componentId:
+          type: integer
+          format: int32
+        subCircuitId:
+          type: integer
+          format: int32
+        bounds:
+          $ref: '#/components/schemas/ComponentBounds'
+        name:
+          type: string
+        description:
+          type: string
+        documentationUrl:
+          type: string
+        category:
+          $ref: '#/components/schemas/Category'
+    ComponentBounds:
+      type: object
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+        width:
+          type: integer
+        height:
+          type: integer
+    Category:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+          format: int32
+        circuitId:
+          type: integer
+          format: int32
+        name:
+          type: string
+        color:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
