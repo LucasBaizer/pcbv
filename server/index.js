@@ -3,18 +3,6 @@
 var env = require('dotenv');
 env.config();
 
-var mysql = require('promise-mysql');
-(async () => {
-	console.log(new Date().getTime());
-	var connection = await mysql.createConnection({
-		host: process.env['MYSQL_SERVER'],
-		user: process.env['MYSQL_USERNAME'],
-		password: process.env['MYSQL_PASSWORD'],
-		database: 'pcbv'
-	});
-	console.log(new Date().getTime());
-})();
-
 var fs = require('fs');
 var path = require('path');
 var http = require('http');

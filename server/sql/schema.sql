@@ -5,7 +5,6 @@ USE pcbv;
 CREATE TABLE Circuits (
 	CircuitID VARCHAR(36),
 	Name VARCHAR(255),
-	Image LONGBLOB,
 
 	PRIMARY KEY (CircuitID)
 );
@@ -15,6 +14,7 @@ CREATE TABLE SubCircuits (
 	ParentCircuitID VARCHAR(36),
 	IsRoot BOOLEAN,
 	Image LONGBLOB,
+	ImageType VARCHAR(4),
 
 	FOREIGN KEY (ParentCircuitID)
 		REFERENCES Circuits(CircuitID)
@@ -85,4 +85,6 @@ VALUES
 ("powerful complex bullet vacuum"),
 ("peaceful cargo box vault"),
 ("putrid commonly bought vodka"),
-("PHP controlled bad variable")
+("PHP controlled bad variable"),
+("proletariat celebrated Bolshevik victory"),
+("painful cardboard box vessel")
