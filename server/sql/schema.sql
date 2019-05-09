@@ -2,7 +2,6 @@ DROP DATABASE IF EXISTS pcbv;
 CREATE DATABASE pcbv;
 USE pcbv;
 
-DROP TABLE IF EXISTS Circuits;
 CREATE TABLE Circuits (
 	CircuitID VARCHAR(36),
 	Name VARCHAR(255),
@@ -10,12 +9,12 @@ CREATE TABLE Circuits (
 
 	PRIMARY KEY (CircuitID)
 );
-DROP TABLE IF EXISTS SubCircuits;
+
 CREATE TABLE SubCircuits (
 	SubCircuitID INT NOT NULL AUTO_INCREMENT,
 	ParentCircuitID VARCHAR(36),
 	IsRoot BOOLEAN,
-	Image LONGBLOG,
+	Image LONGBLOB,
 
 	FOREIGN KEY (ParentCircuitID)
 		REFERENCES Circuits(CircuitID)
@@ -23,7 +22,6 @@ CREATE TABLE SubCircuits (
 	PRIMARY KEY (SubCircuitID)
 );
 
-DROP TABLE IF EXISTS Categories;
 CREATE TABLE Categories (
 	CategoryID INT NOT NULL AUTO_INCREMENT,
 	CircuitID VARCHAR(36),
@@ -36,7 +34,6 @@ CREATE TABLE Categories (
 	PRIMARY KEY (CategoryID)
 );
 
-DROP TABLE IF EXISTS Components;
 CREATE TABLE Components (
 	ComponentID INT NOT NULL AUTO_INCREMENT,
 	SubCircuitID INT,
@@ -58,7 +55,6 @@ CREATE TABLE Components (
 	PRIMARY KEY (ComponentID)
 );
 
-DROP TABLE IF EXISTS CategoryTags;
 CREATE TABLE CategoryTags (
 	CategoryTagID INT NOT NULL AUTO_INCREMENT,
 	CategoryID INT,
@@ -69,3 +65,24 @@ CREATE TABLE CategoryTags (
 		ON DELETE CASCADE,
 	PRIMARY KEY (CategoryTagID)
 );
+
+CREATE TABLE PcbvPhrases (
+	PhraseID INT NOT NULL AUTO_INCREMENT,
+	Phrase VARCHAR(255),
+
+	PRIMARY KEY (PhraseID)
+);
+INSERT INTO PcbvPhrases
+(Phrase)
+VALUES
+("printed circuit board viewer"),
+("PCB circuit board viewer"),
+("pacific coast beach view"),
+("personnel carrying boatlike vehicle"),
+("paper cutout button vortex"),
+("personal carpet buying voucher"),
+("person chucking brazen vaccine"),
+("powerful complex bullet vacuum"),
+("peaceful cargo box vault"),
+("putrid commonly bought vodka"),
+("PHP controlled bad variable")

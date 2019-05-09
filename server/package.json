@@ -4,17 +4,20 @@
   "description": "This is the API for PCBV. You can learn more on the GitHub page at [https://github.com/LucasBaizer/pcbv](https://github.com/LucasBaizer/pcbv). ",
   "main": "index.js",
   "scripts": {
-	"prestart": "npm install",
-	"start": "node index.js"
+    "prestart": "npm install",
+    "start": "node index.js"
   },
   "keywords": [
     "swagger"
   ],
-  "license": "Unlicense",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "connect": "^3.2.0",
+    "dotenv": "^8.0.0",
     "js-yaml": "^3.3.0",
-    "oas3-tools": "^1.0.1"
+    "promise-mysql": "^3.3.1",
+    "swagger-tools": "^0.10.4",
+    "uuid": "^3.3.2"
   }
 }

@@ -3,19 +3,9 @@
 var utils = require('../utils/writer.js');
 var Circuit = require('../service/CircuitService');
 
-module.exports.circuitCircuitIdDELETE = function circuitCircuitIdDELETE (req, res, next) {
-  var circuitId = req.swagger.params['circuitId'].value;
-  Circuit.circuitCircuitIdDELETE(circuitId)
-    .then(function (response) {
-      utils.writeJson(res, response);
-    })
-    .catch(function (response) {
-      utils.writeJson(res, response);
-    });
-};
-
 module.exports.createCircuit = function createCircuit (req, res, next) {
-  Circuit.createCircuit()
+  var body = req.swagger.params['body'].value;
+  Circuit.createCircuit(body)
     .then(function (response) {
       utils.writeJson(res, response);
     })
@@ -26,7 +16,8 @@ module.exports.createCircuit = function createCircuit (req, res, next) {
 
 module.exports.createCircuitCategory = function createCircuitCategory (req, res, next) {
   var circuitId = req.swagger.params['circuitId'].value;
-  Circuit.createCircuitCategory(circuitId)
+  var body = req.swagger.params['body'].value;
+  Circuit.createCircuitCategory(circuitId,body)
     .then(function (response) {
       utils.writeJson(res, response);
     })
@@ -36,9 +27,20 @@ module.exports.createCircuitCategory = function createCircuitCategory (req, res,
 };
 
 module.exports.createSubCircuit = function createSubCircuit (req, res, next) {
-  var body = req.swagger.params['body'].value;
   var circuitId = req.swagger.params['circuitId'].value;
-  Circuit.createSubCircuit(body,circuitId)
+  var body = req.swagger.params['body'].value;
+  Circuit.createSubCircuit(circuitId,body)
+    .then(function (response) {
+      utils.writeJson(res, response);
+    })
+    .catch(function (response) {
+      utils.writeJson(res, response);
+    });
+};
+
+module.exports.deleteCircuit = function deleteCircuit (req, res, next) {
+  var circuitId = req.swagger.params['circuitId'].value;
+  Circuit.deleteCircuit(circuitId)
     .then(function (response) {
       utils.writeJson(res, response);
     })
