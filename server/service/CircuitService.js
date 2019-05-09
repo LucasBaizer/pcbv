@@ -25,7 +25,7 @@ exports.createCircuit = function (body) {
 			const attempt = await sql.query('INSERT INTO Circuits SET ?', {
 				CircuitID: id,
 				Name: body.name
-			}).catch(() => {
+			}).catch(e => {
 				resolve(writer.respondWithCode(400, {
 					error: 'Unknown error caused by invalid payload'
 				}));
@@ -34,9 +34,9 @@ exports.createCircuit = function (body) {
 				const subAttempt = await sql.query('INSERT INTO SubCircuits SET ?', {
 					ParentCircuitID: id,
 					Image: imageBuffer,
-					ImageBody: body.imageType,
+					ImageType: body.imageType,
 					IsRoot: true
-				}).catch(() => {
+				}).catch(e => {
 					resolve(writer.respondWithCode(400, {
 						error: 'Unknown error caused by invalid payload'
 					}));
@@ -193,7 +193,7 @@ exports.deleteCircuit = function (circuitId) {
  * no response value expected for this operation
  **/
 exports.deleteCircuitCategory = function (circuitId, categoryId) {
-	return new Promise(function (resolve, reject) {
+	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const response = await sql.query('DELETE FROM Categories WHERE CircuitID=? AND CategoryID=?', [circuitId, categoryId]);
 		if(response.affectedRows === 0) {
@@ -214,7 +214,7 @@ exports.deleteCircuitCategory = function (circuitId, categoryId) {
  * no response value expected for this operation
  **/
 exports.deleteCircuitComponent = function (circuitId, componentId) {
-	return new Promise(function (resolve, reject) {
+	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const query = `
 			DELETE FROM Components
@@ -243,7 +243,7 @@ exports.deleteCircuitComponent = function (circuitId, componentId) {
  * no response value expected for this operation
  **/
 exports.deleteSubCircuit = function (circuitId, subCircuitId) {
-	return new Promise(function (resolve, reject) {
+	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const response = await sql.query('DELETE FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
 		if(response.affectedRows === 0) {
@@ -265,9 +265,17 @@ exports.deleteSubCircuit = function (circuitId, subCircuitId) {
  * no response value expected for this operation
  **/
 exports.deleteSubCircuitComponent = function (circuitId, subCircuitId, componentId) {
-	return new Promise(function (resolve, reject) {
+	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
-		const response = await sql.query('DELETE FROM Components WHERE CircuitID=? AND CategoryID=?', [circuitId, categoryId]);
+		const query = `
+			DELETE FROM Components
+			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
+			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
+			WHERE Circuits.CircutID=?
+			AND SubCircuits.SubCircuitID=?
+			AND ComponentID=?
+		`;
+		const response = await sql.query(query, [circuitId, subCircuitId, componentId]);
 		if(response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
@@ -285,18 +293,27 @@ exports.deleteSubCircuitComponent = function (circuitId, subCircuitId, component
  * returns Circuit
  **/
 exports.getCircuit = function (circuitId) {
-	return new Promise(function (resolve, reject) {
-		var examples = {};
-		examples['application/json'] = {
-			"image": "image",
-			"name": "name",
-			"circuitId": "circuitId"
-		};
-		if (Object.keys(examples).length > 0) {
-			resolve(examples[Object.keys(examples)[0]]);
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+		const query = `
+			SELECT Circuits.CircuitID, Circuits.Name, SubCircuits.Image, SubCircuits.ImageType FROM Circuits
+			INNER JOIN SubCircuits ON Circuits.CircuitID=SubCircuits.ParentCircuitID
+			WHERE Circuits.CircuitID=?
+			AND SubCircuits.IsRoot=TRUE
+		`;
+		const circuits = await sql.query(query, [circuitId]);
+		if(circuits.length === 0) {
+			resolve(writer.respondWithCode(404));
 		} else {
-			resolve();
+			const circuit = circuits[0];
+			resolve({
+				circuitId: circuitId,
+				name: circuit['Name'],
+				image: circuit['Image'].toString('base64'),
+				imageType: circuit['ImageType']
+			});
 		}
+		sql.end();
 	});
 }
 
