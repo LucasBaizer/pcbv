@@ -29,7 +29,8 @@ module.exports.createCircuitCategory = function createCircuitCategory (req, res,
 module.exports.createSubCircuit = function createSubCircuit (req, res, next) {
   var circuitId = req.swagger.params['circuitId'].value;
   var body = req.swagger.params['body'].value;
-  Circuit.createSubCircuit(circuitId,body)
+  var side = req.swagger.params['side'].value;
+  Circuit.createSubCircuit(circuitId,body,side)
     .then(function (response) {
       utils.writeJson(res, response);
     })
@@ -145,7 +146,8 @@ module.exports.getSubCircuitComponents = function getSubCircuitComponents (req, 
 
 module.exports.getSubCircuits = function getSubCircuits (req, res, next) {
   var circuitId = req.swagger.params['circuitId'].value;
-  Circuit.getSubCircuits(circuitId)
+  var side = req.swagger.params['side'].value;
+  Circuit.getSubCircuits(circuitId,side)
     .then(function (response) {
       utils.writeJson(res, response);
     })

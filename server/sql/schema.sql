@@ -14,6 +14,7 @@ CREATE TABLE SubCircuits (
 	ParentCircuitID VARCHAR(36),
 	IsRoot BOOLEAN,
 	Image LONGBLOB,
+	IsFront BOOLEAN,
 	ImageType VARCHAR(4),
 
 	FOREIGN KEY (ParentCircuitID)

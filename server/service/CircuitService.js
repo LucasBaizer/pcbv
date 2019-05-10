@@ -16,12 +16,13 @@ exports.createCircuit = function (body) {
 		const sql = await util.connect();
 		const id = body.circuitId || uuid();
 		const count = (await sql.query('SELECT COUNT(*) AS Count FROM Circuits WHERE CircuitID=?', [id]))[0]['Count'];
-		if(count > 0) {
+		if (count > 0) {
 			resolve(writer.respondWithCode(400, {
 				error: 'Circuit already exists'
 			}));
 		} else {
-			const imageBuffer = Buffer.from(body.image, 'base64');
+			const frontImageBuffer = Buffer.from(body.imageFront, 'base64');
+			const backImageBuffer = Buffer.from(body.imageBack, 'base64');
 			const attempt = await sql.query('INSERT INTO Circuits SET ?', {
 				CircuitID: id,
 				Name: body.name
@@ -30,22 +31,34 @@ exports.createCircuit = function (body) {
 					error: 'Unknown error caused by invalid payload'
 				}));
 			});
-			if(attempt) {
-				const subAttempt = await sql.query('INSERT INTO SubCircuits SET ?', {
-					ParentCircuitID: id,
-					Image: imageBuffer,
-					ImageType: body.imageType,
-					IsRoot: true
-				}).catch(e => {
+			if (attempt) {
+				const subAttempt = await sql.query('INSERT INTO SubCircuits (ParentCircuitID, Image, ImageType, IsRoot, IsFront) VALUES ?', [[
+					[
+						id,
+						frontImageBuffer,
+						body.imageType,
+						true,
+						true
+					],
+					[
+						id,
+						backImageBuffer,
+						body.imageType,
+						true,
+						false
+					]
+				]]).catch(e => {
+					console.log(e);
 					resolve(writer.respondWithCode(400, {
 						error: 'Unknown error caused by invalid payload'
 					}));
 				});
-				if(subAttempt) {
+				if (subAttempt) {
 					resolve({
 						circuitId: id,
 						name: body.name,
-						image: body.name,
+						imageFront: body.imageFront,
+						imageBack: body.imageBack,
 						imageType: body.imageType
 					});
 				}
@@ -68,7 +81,7 @@ exports.createCircuitCategory = function (circuitId, body) {
 		const sql = await util.connect();
 
 		body.color = body.color.toUpperCase();
-		if(!/^[0123456789ABCDEF]+$/g.test(body.color) || body.length !== 6) {
+		if (!/^[0123456789ABCDEF]+$/g.test(body.color) || body.color.length !== 6) {
 			resolve(writer.respondWithCode(400, {
 				error: 'Invalid color'
 			}));
@@ -78,7 +91,7 @@ exports.createCircuitCategory = function (circuitId, body) {
 				Name: body.name,
 				RgbColor: body.color
 			};
-			if(body.categoryId) {
+			if (body.categoryId) {
 				data['CategoryID'] = body.categoryId;
 			}
 			const attempt = await sql.query('INSERT INTO Categories SET ?', data).catch(() => {
@@ -86,19 +99,17 @@ exports.createCircuitCategory = function (circuitId, body) {
 					error: 'Unknown error caused by invalid payload'
 				}));
 			});
-			if(attempt) {
-				const id = await sql.query('SELECT LAST_INSERT_ID() AS ID')[0]['ID'];
-				if(body.tags) {
-					body.tags = body.tags.map(tag => ({
-						CategoryID: id,
-						TagContent: tag
-					}));
-					const attemptTags = await sql.query('INSERT INTO CategoryTags SET ?', body.tags).catch(() => {
+			if (attempt) {
+				const id = attempt.insertId;
+				if (body.tags && body.tags.length > 0) {
+					// TODO fix
+					const insertTags = body.tags.map(tag => [id, tag]);
+					const attemptTags = await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent) VALUES ?', [insertTags]).catch(() => {
 						resolve(writer.respondWithCode(400, {
 							error: 'Unknown error caused by invalid tags in payload'
 						}));
 					});
-					if(attemptTags) {
+					if (attemptTags) {
 						resolve({
 							color: body.color,
 							name: body.name,
@@ -107,6 +118,14 @@ exports.createCircuitCategory = function (circuitId, body) {
 							tags: body.tags
 						});
 					}
+				} else {
+					resolve({
+						color: body.color,
+						name: body.name,
+						categoryId: id,
+						circuitId: circuitId,
+						tags: []
+					});
 				}
 			}
 		}
@@ -122,38 +141,28 @@ exports.createCircuitCategory = function (circuitId, body) {
  * body SubCircuit Data to create for the subcircuit
  * returns SubCircuit
  **/
-exports.createSubCircuit = function (circuitId, body) {
+exports.createSubCircuit = function (circuitId, body, side) {
 	return new Promise(async (resolve, reject) => {
-		// var examples = {};
-		// examples['application/json'] = {
-		// 	"image": "image",
-		// 	"parentCircuitId": "parentCircuitId",
-		// 	"subCircuitId": 0
-		// };
-		// if (Object.keys(examples).length > 0) {
-		// 	resolve(examples[Object.keys(examples)[0]]);
-		// } else {
-		// 	resolve();
-		// }
 		const sql = await util.connect();
 
 		const buffer = Buffer.from(body.image, 'base64');
 		const data = {
 			Image: buffer,
 			ImageType: body.imageType,
-			ParentCircuitID: body.parentCircuitId,
+			ParentCircuitID: circuitId,
+			IsFront: side === 'front',
 			IsRoot: false
 		};
-		if(body.subCircuitId || typeof body.subCircuitId === 'number') {
+		if (body.subCircuitId || typeof body.subCircuitId === 'number') {
 			data['SubCircuitID'] = body.subCircuitId;
 		}
-		const attempt = sql.query('INSERT INTO SubCircuits SET ?', data).catch(() => {
+		const attempt = await sql.query('INSERT INTO SubCircuits SET ?', data).catch(() => {
 			resolve(writer.respondWithCode(400, {
 				error: 'Unknown error caused by invalid payload'
 			}));
 		});
-		const id = (await sql.query('SELECT LAST_INSERT_ID() AS ID'))[0]['ID'];
-		if(attempt) {
+		const id = attempt.insertId;
+		if (attempt) {
 			resolve({
 				...body,
 				subCircuitId: id
@@ -175,7 +184,7 @@ exports.deleteCircuit = function (circuitId) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const response = await sql.query('DELETE FROM Circuits WHERE CircuitID=?', [circuitId]);
-		if(response.affectedRows === 0) {
+		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			resolve();
@@ -196,7 +205,7 @@ exports.deleteCircuitCategory = function (circuitId, categoryId) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const response = await sql.query('DELETE FROM Categories WHERE CircuitID=? AND CategoryID=?', [circuitId, categoryId]);
-		if(response.affectedRows === 0) {
+		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			resolve();
@@ -225,7 +234,7 @@ exports.deleteCircuitComponent = function (circuitId, componentId) {
 			AND ComponentID=?
 		`;
 		const response = await sql.query(query, [circuitId, componentId]);
-		if(response.affectedRows === 0) {
+		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			resolve();
@@ -246,7 +255,7 @@ exports.deleteSubCircuit = function (circuitId, subCircuitId) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const response = await sql.query('DELETE FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
-		if(response.affectedRows === 0) {
+		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			resolve();
@@ -276,7 +285,7 @@ exports.deleteSubCircuitComponent = function (circuitId, subCircuitId, component
 			AND ComponentID=?
 		`;
 		const response = await sql.query(query, [circuitId, subCircuitId, componentId]);
-		if(response.affectedRows === 0) {
+		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			resolve();
@@ -302,15 +311,17 @@ exports.getCircuit = function (circuitId) {
 			AND SubCircuits.IsRoot=TRUE
 		`;
 		const circuits = await sql.query(query, [circuitId]);
-		if(circuits.length === 0) {
+		if (circuits.length === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const circuit = circuits[0];
+			const frontCircuit = circuits[0];
+			const backCircuit = circuits[1];
 			resolve({
 				circuitId: circuitId,
-				name: circuit['Name'],
-				image: circuit['Image'].toString('base64'),
-				imageType: circuit['ImageType']
+				name: frontCircuit['Name'],
+				imageFront: frontCircuit['Image'].toString('base64'),
+				imageBack: backCircuit['Image'].toString('base64'),
+				imageType: frontCircuit['ImageType']
 			});
 		}
 		sql.end();
@@ -325,26 +336,47 @@ exports.getCircuit = function (circuitId) {
  * returns List
  **/
 exports.getCircuitCategories = function (circuitId) {
-	return new Promise(function (resolve, reject) {
-		var examples = {};
-		examples['application/json'] = [{
-			"color": "color",
-			"name": "name",
-			"categoryId": 7,
-			"circuitId": 9,
-			"tags": ["tags", "tags"]
-		}, {
-			"color": "color",
-			"name": "name",
-			"categoryId": 7,
-			"circuitId": 9,
-			"tags": ["tags", "tags"]
-		}];
-		if (Object.keys(examples).length > 0) {
-			resolve(examples[Object.keys(examples)[0]]);
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+
+		const query = `
+			SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+			FROM Circuits
+			INNER JOIN Categories ON Circuits.CircuitID=Categories.CircuitID
+			LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
+			WHERE Circuits.CircuitID=?
+			ORDER BY (Categories.CategoryID)
+		`;
+		const categoriesSql = await sql.query(query, [circuitId]);
+		if(categoriesSql.length === 0) {
+			resolve(writer.respondWithCode(404));
 		} else {
-			resolve();
+			const categories = [];
+			let currentCategory = null;
+			for(const category of categoriesSql) {
+				if(currentCategory === null || currentCategory['CategoryID'] !== category['CategoryID']) {
+					if(currentCategory !== null) {
+						categories.push(currentCategory);
+						currentCategory = null;
+					}
+					currentCategory = {
+						color: category['RgbColor'],
+						name: category['Name'],
+						categoryId: category['CategoryID'],
+						circuitId: category['CircuitID'],
+						tags: []
+					};
+					if(category['TagContent']) {
+						currentCategory.tags.push(category['TagContent']);
+					}
+				} else  {
+					currentCategory.tags.push(category['TagContent']);
+				}
+			}
+			resolve(categories);
 		}
+
+		sql.end();
 	});
 }
 

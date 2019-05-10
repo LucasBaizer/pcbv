@@ -24,7 +24,7 @@ paths:
     post:
       tags:
       - "circuit"
-      summary: "Creates basic information and the image for a new circuit"
+      summary: "Creates basic information and the images for a new circuit"
       operationId: "createCircuit"
       parameters:
       - in: "body"
@@ -90,6 +90,14 @@ paths:
         description: "GUID of the circuit"
         required: true
         type: "string"
+      - name: "side"
+        in: "query"
+        description: "Side of the circuit the subcircuits are on"
+        required: true
+        type: "string"
+        enum:
+        - "front"
+        - "back"
       responses:
         200:
           description: "Circuit is valid"
@@ -103,7 +111,7 @@ paths:
     post:
       tags:
       - "circuit"
-      summary: "Creates basic information and image of a particular subcircuit in\
+      summary: "Creates basic information and images of a particular subcircuit in\
         \ a circuit"
       operationId: "createSubCircuit"
       parameters:
@@ -118,6 +126,14 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/SubCircuit"
+      - name: "side"
+        in: "query"
+        description: "Side of the circuit the subcircuit is on"
+        required: true
+        type: "string"
+        enum:
+        - "front"
+        - "back"
       responses:
         200:
           description: "Successfully ceated"
@@ -345,14 +361,17 @@ definitions:
         type: "string"
       name:
         type: "string"
-      image:
+      imageFront:
+        type: "string"
+      imageBack:
         type: "string"
       imageType:
         type: "string"
     example:
-      image: "image"
-      imageType: "imageType"
+      imageFront: "imageFront"
       name: "name"
+      imageBack: "imageBack"
+      imageType: "imageType"
       circuitId: "circuitId"
   SubCircuit:
     type: "object"
@@ -366,11 +385,17 @@ definitions:
         type: "string"
       imageType:
         type: "string"
+      side:
+        type: "string"
+        enum:
+        - "front"
+        - "back"
     example:
       image: "image"
-      imageType: "imageType"
+      side: "front"
       parentCircuitId: "parentCircuitId"
       subCircuitId: 0
+      imageType: "imageType"
   Component:
     type: "object"
     properties:
