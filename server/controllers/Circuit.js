@@ -26,11 +26,37 @@ module.exports.createCircuitCategory = function createCircuitCategory (req, res,
     });
 };
 
+module.exports.createComponent = function createComponent (req, res, next) {
+  var circuitId = req.swagger.params['circuitId'].value;
+  var body = req.swagger.params['body'].value;
+  var side = req.swagger.params['side'].value;
+  Circuit.createComponent(circuitId,body,side)
+    .then(function (response) {
+      utils.writeJson(res, response);
+    })
+    .catch(function (response) {
+      utils.writeJson(res, response);
+    });
+};
+
 module.exports.createSubCircuit = function createSubCircuit (req, res, next) {
   var circuitId = req.swagger.params['circuitId'].value;
   var body = req.swagger.params['body'].value;
   var side = req.swagger.params['side'].value;
   Circuit.createSubCircuit(circuitId,body,side)
+    .then(function (response) {
+      utils.writeJson(res, response);
+    })
+    .catch(function (response) {
+      utils.writeJson(res, response);
+    });
+};
+
+module.exports.createSubCircuitComponent = function createSubCircuitComponent (req, res, next) {
+  var circuitId = req.swagger.params['circuitId'].value;
+  var subCircuitId = req.swagger.params['subCircuitId'].value;
+  var body = req.swagger.params['body'].value;
+  Circuit.createSubCircuitComponent(circuitId,subCircuitId,body)
     .then(function (response) {
       utils.writeJson(res, response);
     })

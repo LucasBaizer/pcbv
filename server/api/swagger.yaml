@@ -11,13 +11,13 @@ info:
   license:
     name: "MIT"
     url: "https://github.com/LucasBaizer/pcbv/tree/master/LICENSE.md"
-basePath: "/api/v1"
+host: "virtserver.swaggerhub.com"
+basePath: "/baizerlabs/pcbv-api/1.0.0"
 tags:
 - name: "circuit"
   description: "Work with circuits"
 - name: "phrase"
 schemes:
-- "http"
 - "https"
 paths:
   /circuit:
@@ -189,6 +189,41 @@ paths:
         404:
           description: "Circuit does not exist"
       x-swagger-router-controller: "Circuit"
+    post:
+      tags:
+      - "circuit"
+      summary: "Create a new root component for a circuit"
+      operationId: "createComponent"
+      parameters:
+      - name: "circuitId"
+        in: "path"
+        description: "GUID of the circuit"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "body"
+        description: "Data to create for the component"
+        required: false
+        schema:
+          $ref: "#/definitions/Component"
+      - name: "side"
+        in: "query"
+        description: "Side of the board the component is on"
+        required: false
+        type: "string"
+        enum:
+        - "front"
+        - "back"
+      responses:
+        200:
+          description: "Created component"
+          schema:
+            $ref: "#/definitions/Component"
+        400:
+          description: "Invalid request data"
+        404:
+          description: "Circuit does not exist"
+      x-swagger-router-controller: "Circuit"
   /circuit/{circuitId}/component/{componentId}:
     delete:
       tags:
@@ -236,6 +271,38 @@ paths:
             type: "array"
             items:
               $ref: "#/definitions/Component"
+        404:
+          description: "Either circuit or subcircuit do not exist"
+      x-swagger-router-controller: "Circuit"
+    post:
+      tags:
+      - "circuit"
+      summary: "Creates a component for a particular subcircuit of a circuit"
+      operationId: "createSubCircuitComponent"
+      parameters:
+      - name: "circuitId"
+        in: "path"
+        description: "GUID of the circuit"
+        required: true
+        type: "string"
+      - name: "subCircuitId"
+        in: "path"
+        description: "ID of the subcircuit"
+        required: true
+        type: "integer"
+      - in: "body"
+        name: "body"
+        description: "Data to create for the component"
+        required: true
+        schema:
+          $ref: "#/definitions/Component"
+      responses:
+        200:
+          description: "Created component"
+          schema:
+            $ref: "#/definitions/Component"
+        400:
+          description: "Invalid request data"
         404:
           description: "Either circuit or subcircuit do not exist"
       x-swagger-router-controller: "Circuit"

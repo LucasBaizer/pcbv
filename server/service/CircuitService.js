@@ -4,6 +4,32 @@ const uuid = require('uuid/v1');
 const writer = require('../utils/writer');
 const util = require('./ServiceUtil');
 
+function generateCategories(categorySql) {
+	const categories = [];
+	let currentCategory = null;
+	for (const category of categorySql) {
+		if (currentCategory === null || currentCategory['CategoryID'] !== category['CategoryID']) {
+			if (currentCategory !== null) {
+				categories.push(currentCategory);
+				currentCategory = null;
+			}
+			currentCategory = {
+				color: category['RgbColor'],
+				name: category['Name'],
+				categoryId: category['CategoryID'],
+				circuitId: category['CircuitID'],
+				tags: []
+			};
+			if (category['TagContent']) {
+				currentCategory.tags.push(category['TagContent']);
+			}
+		} else {
+			currentCategory.tags.push(category['TagContent']);
+		}
+	}
+	return categories;
+}
+
 
 /**
  * Creates basic information and the image for a new circuit
@@ -54,6 +80,8 @@ exports.createCircuit = function (body) {
 					}));
 				});
 				if (subAttempt) {
+					await sql.query('INSERT INTO Categories (CircuitID, Name, RgbColor) VALUES ?', [defaultCategories]); // TODO
+
 					resolve({
 						circuitId: id,
 						name: body.name,
@@ -133,6 +161,94 @@ exports.createCircuitCategory = function (circuitId, body) {
 	});
 }
 
+/**
+ * Create a new root component for a circuit
+ *
+ * circuitId String GUID of the circuit
+ * body Component Data to create for the component (optional)
+ * returns Component
+ **/
+exports.createComponent = function (circuitId, body, side) {
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+
+		if (!body.categoryId && body.categoryId !== 0) {
+			resolve(writer.respondWithCode(400, {
+				error: 'Invalid category ID (missing field: categoryId)'
+			}));
+		} else {
+			const mainSub = (await sql.query('SELECT SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND IsRoot=TRUE AND IsFront=?', [circuitId, side === 'front']))[0]['SubCircuitID'];
+
+			const data = {
+				RectX: body.bounds.x,
+				RectY: body.bounds.y,
+				RectWidth: body.bounds.width,
+				RectHeight: body.bounds.height,
+				DocumentationUrl: body.documentationUrl,
+				Name: body.name,
+				CategoryID: body.categoryId,
+				SubCircuitID: mainSub
+			};
+			if (body.componentId || typeof body.componentId === 'number') {
+				data['ComponentID'] = body.componentId;
+			}
+			const success = await sql.query('INSERT INTO Components SET ?', data).catch(() => {
+				resolve(writer.respondWithCode(400, {
+					error: 'Unknown error caused by invalid payload'
+				}));
+			});
+			if (success) {
+				const query = `
+					SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+					FROM Circuits
+					INNER JOIN Categories ON Circuits.CircuitID=Categories.CircuitID
+					LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
+					WHERE Circuits.CircuitID=?
+					AND Categories.CategoryID=?
+				`;
+				const categorySql = (await sql.query(query, [circuitId, body.categoryId]))[0];
+				const categories = generateCategories(categorySql);
+
+				const newBody = {
+					...body,
+					category: categories[0]
+				};
+				delete newBody.categoryId;
+				resolve(newBody);
+			}
+
+			sql.end();
+		}
+
+		var examples = {};
+		examples['application/json'] = {
+			"documentationUrl": "documentationUrl",
+			"componentId": 0,
+			"bounds": {
+				"x": 1,
+				"width": 5,
+				"y": 5,
+				"height": 2
+			},
+			"name": "name",
+			"subCircuitId": 6,
+			"description": "description",
+			"category": {
+				"color": "color",
+				"name": "name",
+				"categoryId": 7,
+				"circuitId": 9,
+				"tags": ["tags", "tags"]
+			}
+		};
+		if (Object.keys(examples).length > 0) {
+			resolve(examples[Object.keys(examples)[0]]);
+		} else {
+			resolve();
+		}
+	});
+}
+
 
 /**
  * Creates basic information and image of a particular subcircuit in a circuit
@@ -170,6 +286,45 @@ exports.createSubCircuit = function (circuitId, body, side) {
 		}
 
 		sql.end();
+	});
+}
+
+/**
+ * Creates a component for a particular subcircuit of a circuit
+ *
+ * circuitId String GUID of the circuit
+ * subCircuitId Integer ID of the subcircuit
+ * body Component Data to create for the component
+ * returns Component
+ **/
+exports.createSubCircuitComponent = function (circuitId, subCircuitId, body) {
+	return new Promise(function (resolve, reject) {
+		var examples = {};
+		examples['application/json'] = {
+			"documentationUrl": "documentationUrl",
+			"componentId": 0,
+			"bounds": {
+				"x": 1,
+				"width": 5,
+				"y": 5,
+				"height": 2
+			},
+			"name": "name",
+			"subCircuitId": 6,
+			"description": "description",
+			"category": {
+				"color": "color",
+				"name": "name",
+				"categoryId": 7,
+				"circuitId": 9,
+				"tags": ["tags", "tags"]
+			}
+		};
+		if (Object.keys(examples).length > 0) {
+			resolve(examples[Object.keys(examples)[0]]);
+		} else {
+			resolve();
+		}
 	});
 }
 
@@ -348,31 +503,10 @@ exports.getCircuitCategories = function (circuitId) {
 			ORDER BY (Categories.CategoryID)
 		`;
 		const categoriesSql = await sql.query(query, [circuitId]);
-		if(categoriesSql.length === 0) {
+		if (categoriesSql.length === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const categories = [];
-			let currentCategory = null;
-			for(const category of categoriesSql) {
-				if(currentCategory === null || currentCategory['CategoryID'] !== category['CategoryID']) {
-					if(currentCategory !== null) {
-						categories.push(currentCategory);
-						currentCategory = null;
-					}
-					currentCategory = {
-						color: category['RgbColor'],
-						name: category['Name'],
-						categoryId: category['CategoryID'],
-						circuitId: category['CircuitID'],
-						tags: []
-					};
-					if(category['TagContent']) {
-						currentCategory.tags.push(category['TagContent']);
-					}
-				} else  {
-					currentCategory.tags.push(category['TagContent']);
-				}
-			}
+			const categories = generateCategories(categoriesSql);
 			resolve(categories);
 		}
 
@@ -389,7 +523,7 @@ exports.getCircuitCategories = function (circuitId) {
  **/
 exports.getCircuitComponents = function (circuitId) {
 	return new Promise(function (resolve, reject) {
-		var examples = {};
+		/*var examples = {};
 		examples['application/json'] = [{
 			"documentationUrl": "documentationUrl",
 			"componentId": 0,
@@ -433,7 +567,23 @@ exports.getCircuitComponents = function (circuitId) {
 			resolve(examples[Object.keys(examples)[0]]);
 		} else {
 			resolve();
+		}*/
+		const sql = await util.connect();
+		const query = `
+			SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name, Components.SubCircuitID, Description FROM Components
+			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
+			INNER JOIN Categories ON Components.CategoryID=Categories.CategoryID AND SubCircuits.SubCircuitID=Categories.SubCircuitID
+			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
+			WHERE Circuits.CircuitID=?
+			AND SubCircuits.IsRoot=TRUE
+		`;
+		const response = await sql.query(query);
+		if (response.length === 0) {
+			resolve(writer.respondWithCode(404));
+		} else {
+
 		}
+		sql.end();
 	});
 }
 
@@ -446,7 +596,7 @@ exports.getCircuitComponents = function (circuitId) {
  * returns List
  **/
 exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
-	return new Promise(function (resolve, reject) {
+	return new Promise(async (resolve, reject) => {
 		var examples = {};
 		examples['application/json'] = [{
 			"documentationUrl": "documentationUrl",
@@ -502,8 +652,8 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
  * circuitId String GUID of the circuit
  * returns List
  **/
-exports.getSubCircuits = function (circuitId) {
-	return new Promise(function (resolve, reject) {
+exports.getSubCircuits = function (circuitId, side) {
+	return new Promise(async (resolve, reject) => {
 		var examples = {};
 		examples['application/json'] = [{
 			"image": "image",
