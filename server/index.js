@@ -23,6 +23,14 @@ var options = {
 var spec = fs.readFileSync(path.join(__dirname, 'api/swagger.yaml'), 'utf8');
 var swaggerDoc = jsyaml.safeLoad(spec);
 
+app.use(function (req, res, next) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+
+    next();
+});
+
 // Initialize the Swagger middleware
 swaggerTools.initializeMiddleware(swaggerDoc, function (middleware) {
 	// Interpret Swagger resources and attach metadata to request - must be first in swagger-tools middleware chain
