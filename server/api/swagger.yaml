@@ -11,13 +11,13 @@ info:
   license:
     name: "MIT"
     url: "https://github.com/LucasBaizer/pcbv/tree/master/LICENSE.md"
-host: "virtserver.swaggerhub.com"
-basePath: "/baizerlabs/pcbv-api/1.0.0"
+basePath: "/api/v1"
 tags:
 - name: "circuit"
   description: "Work with circuits"
 - name: "phrase"
 schemes:
+- "http"
 - "https"
 paths:
   /circuit:
@@ -472,6 +472,8 @@ definitions:
       subCircuitId:
         type: "integer"
         format: "int32"
+      circuitId:
+        type: "string"
       bounds:
         $ref: "#/definitions/ComponentBounds"
       name:
