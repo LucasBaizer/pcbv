@@ -303,7 +303,11 @@ exports.createSubCircuit = function (circuitId, body, side) {
 			ImageType: body.imageType,
 			ParentCircuitID: circuitId,
 			IsFront: side === 'front',
-			IsRoot: false
+			IsRoot: false,
+			RectX: body.bounds.x,
+			RectY: body.bounds.y,
+			RectWidth: body.bounds.width,
+			RectHeight: body.bounds.height
 		};
 		if (body.subCircuitId || typeof body.subCircuitId === 'number') {
 			data['SubCircuitID'] = body.subCircuitId;
@@ -606,7 +610,7 @@ exports.getCircuitComponents = function (circuitId, side) {
 		} else {
 			const sql = await util.connect();
 			const query = `
-				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
 				FROM Components
 				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
@@ -712,6 +716,35 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 	});
 }
 
+exports.getSubCircuit = function (circuitId, subCircuitId) {
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+		const circuits = await sql.query('SELECT COUNT(*) as Count FROM Circuits WHERE CircuitID=?', [circuitId]);
+		if(circuits[0]['Count'] === 0) {
+			resolve(writer.respondWithCode(404));
+		} else {
+			const subCircuits = await sql.query('SELECT Image, ImageType, RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
+			if(subCircuits.length === 0) {
+				resolve(writer.respondWithCode(404));
+			} else {
+				resolve(subCircuits.map(circuit => ({
+					image: circuit['Image'],
+					imageType: circuit['ImageType'],
+					parentCircuitId: circuit['ParentCircuitID'],
+					subCircuitId: circuit['SubCircuitID'],
+					bounds: {
+						x: circuit['RectX'],
+						y: circuit['RectY'],
+						width: circuit['RectWidth'],
+						height: circuit['RectHeight']
+					}
+				})));
+			}
+		}
+		sql.end();
+	});
+}
+
 
 /**
  * Gets basic information and the image of all subcircuits of a circuit
@@ -726,14 +759,19 @@ exports.getSubCircuits = function (circuitId, side) {
 		if(circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const subCircuits = await sql.query('SELECT Image, ImageType, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
+			const subCircuits = await sql.query('SELECT RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
 			if(subCircuits.length === 0) {
 				resolve([]);
 			} else {
 				resolve(subCircuits.map(circuit => ({
-					image: circuit['Image'],
 					parentCircuitId: circuit['ParentCircuitID'],
-					subCircuitId: circuit['SubCircuitID']
+					subCircuitId: circuit['SubCircuitID'],
+					bounds: {
+						x: circuit['RectX'],
+						y: circuit['RectY'],
+						width: circuit['RectWidth'],
+						height: circuit['RectHeight']
+					}
 				})));
 			}
 		}

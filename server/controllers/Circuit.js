@@ -171,6 +171,18 @@ module.exports.getSubCircuitComponents = function getSubCircuitComponents(req, r
 		});
 };
 
+module.exports.getSubCircuit = function getSubCircuit(req, res, next) {
+	var circuitId = req.swagger.params['circuitId'].value;
+	var subCircuitId = req.swagger.params['subCircuitId'].value;
+	Circuit.getSubCircuit(circuitId, subCircuitId)
+		.then(function (response) {
+			utils.writeJson(res, response);
+		})
+		.catch(function (response) {
+			utils.writeJson(res, response);
+		});
+};
+
 module.exports.getSubCircuits = function getSubCircuits(req, res, next) {
 	var circuitId = req.swagger.params['circuitId'].value;
 	var side = req.swagger.params['side'].value;

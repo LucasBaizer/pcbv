@@ -82,7 +82,7 @@ paths:
     get:
       tags:
       - "circuit"
-      summary: "Gets basic information and the image of all subcircuits of a circuit"
+      summary: "Gets basic information of all subcircuits of a circuit"
       operationId: "getSubCircuits"
       parameters:
       - name: "circuitId"
@@ -111,7 +111,7 @@ paths:
     post:
       tags:
       - "circuit"
-      summary: "Creates basic information and images of a particular subcircuit in\
+      summary: "Creates basic information and image of a particular subcircuit in\
         \ a circuit"
       operationId: "createSubCircuit"
       parameters:
@@ -145,6 +145,30 @@ paths:
           description: "Circuit does not exist"
       x-swagger-router-controller: "Circuit"
   /circuit/{circuitId}/subcircuit/{subCircuitId}:
+    get:
+      tags:
+      - "circuit"
+      summary: "Gets image and basic information of a particular subcircuit of a circuit"
+      operationId: "getSubCircuit"
+      parameters:
+      - name: "circuitId"
+        in: "path"
+        description: "GUID of the circuit"
+        required: true
+        type: "string"
+      - name: "subCircuitId"
+        in: "path"
+        description: "ID of the subcircuit"
+        required: true
+        type: "integer"
+      responses:
+        200:
+          description: "Circuit and subcircuit are valid"
+          schema:
+            $ref: "#/definitions/SubCircuit"
+        404:
+          description: "Either circuit or subcircuit do not exist"
+      x-swagger-router-controller: "Circuit"
     delete:
       tags:
       - "circuit"
@@ -185,8 +209,8 @@ paths:
         required: true
         type: "string"
         enum:
-        - "front"
-        - "back"
+        - front
+        - back
       responses:
         200:
           description: "Circuit is valid"
@@ -460,6 +484,8 @@ definitions:
         type: "string"
       imageType:
         type: "string"
+      bounds:
+        $ref: "#/definitions/ComponentBounds"
       side:
         type: "string"
         enum:
@@ -469,6 +495,11 @@ definitions:
       image: "image"
       side: "front"
       parentCircuitId: "parentCircuitId"
+      bounds:
+        x: 6
+        width: 5
+        y: 1
+        height: 5
       subCircuitId: 0
       imageType: "imageType"
   Component:
@@ -480,7 +511,7 @@ definitions:
       subCircuitId:
         type: "integer"
         format: "int32"
-      circuitId:
+      cirucitId:
         type: "string"
       bounds:
         $ref: "#/definitions/ComponentBounds"
@@ -495,19 +526,20 @@ definitions:
     example:
       documentationUrl: "documentationUrl"
       componentId: 0
+      cirucitId: "cirucitId"
       bounds:
-        x: 1
+        x: 6
         width: 5
-        y: 5
-        height: 2
+        y: 1
+        height: 5
       name: "name"
       subCircuitId: 6
       description: "description"
       category:
         color: "color"
         name: "name"
-        categoryId: 7
-        circuitId: 9
+        categoryId: 1
+        circuitId: 5
         tags:
         - "tags"
         - "tags"
@@ -523,10 +555,10 @@ definitions:
       height:
         type: "integer"
     example:
-      x: 1
+      x: 6
       width: 5
-      y: 5
-      height: 2
+      y: 1
+      height: 5
   Category:
     type: "object"
     properties:
@@ -547,8 +579,8 @@ definitions:
     example:
       color: "color"
       name: "name"
-      categoryId: 7
-      circuitId: 9
+      categoryId: 1
+      circuitId: 5
       tags:
       - "tags"
       - "tags"

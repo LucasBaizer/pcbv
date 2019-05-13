@@ -12,6 +12,10 @@ CREATE TABLE Circuits (
 CREATE TABLE SubCircuits (
 	SubCircuitID INT NOT NULL AUTO_INCREMENT,
 	ParentCircuitID VARCHAR(36),
+	RectX INT,
+	RectY INT,
+	RectWidth INT,
+	RectHeight INT,
 	IsRoot BOOLEAN,
 	Image LONGBLOB,
 	IsFront BOOLEAN,
