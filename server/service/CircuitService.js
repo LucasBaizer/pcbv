@@ -597,48 +597,55 @@ exports.getCircuitCategories = function (circuitId) {
  * circuitId String GUID of the circuit
  * returns List
  **/
-exports.getCircuitComponents = function (circuitId) {
+exports.getCircuitComponents = function (circuitId, side) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
-		const query = `
-			SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
-			FROM Components
-			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
-			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
-			INNER JOIN Categories ON Components.CategoryID=Categories.CategoryID AND Circuits.CircuitID=Categories.CircuitID
-			LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
-			WHERE Circuits.CircuitID=?
-			AND SubCircuits.IsRoot=TRUE
-			ORDER BY Components.ComponentID, Categories.CategoryID
-		`;
-		const response = await sql.query(query, [circuitId]);
-		if (response.length === 0) {
+		const circuits = await sql.query('SELECT COUNT(*) as Count FROM Circuits WHERE CircuitID=?', [circuitId]);
+		if(circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const consolidated = consolidate(response);
-			resolve(consolidated.map(item => {
-				return {
-					documentationUrl: item['DocumentationUrl'],
-					componentId: item['ComponentID'],
-					bounds: {
-						x: item['RectX'],
-						y: item['RectY'],
-						width: item['Width'],
-						height: item['Height']
-					},
-					name: item['ComponentName'],
-					subCircuitId: item['SubCircuitID'],
-					circuitId: item['CircuitID'],
-					description: item['Description'],
-					category: {
-						color: item['RgbColor'],
-						name: item['CategoryName'],
-						categoryId: item['CategoryID'],
+			const sql = await util.connect();
+			const query = `
+				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+				FROM Components
+				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
+				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
+				INNER JOIN Categories ON Components.CategoryID=Categories.CategoryID AND Circuits.CircuitID=Categories.CircuitID
+				LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
+				WHERE Circuits.CircuitID=?
+				AND SubCircuits.IsRoot=TRUE
+				AND SubCircuits.IsFront=?
+				ORDER BY Components.ComponentID, Categories.CategoryID
+			`;
+			const response = await sql.query(query, [circuitId, side === 'front']);
+			if (response.length === 0) {
+				resolve([]);
+			} else {
+				const consolidated = consolidate(response);
+				resolve(consolidated.map(item => {
+					return {
+						documentationUrl: item['DocumentationUrl'],
+						componentId: item['ComponentID'],
+						bounds: {
+							x: item['RectX'],
+							y: item['RectY'],
+							width: item['Width'],
+							height: item['Height']
+						},
+						name: item['ComponentName'],
+						subCircuitId: item['SubCircuitID'],
 						circuitId: item['CircuitID'],
-						tags: item['TagContent']
-					}
-				};
-			}));
+						description: item['Description'],
+						category: {
+							color: item['RgbColor'],
+							name: item['CategoryName'],
+							categoryId: item['CategoryID'],
+							circuitId: item['CircuitID'],
+							tags: item['TagContent']
+						}
+					};
+				}));
+			}
 		}
 		sql.end();
 	});
@@ -655,45 +662,51 @@ exports.getCircuitComponents = function (circuitId) {
 exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
-		const query = `
-			SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
-			FROM Components
-			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
-			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
-			INNER JOIN Categories ON Components.CategoryID=Categories.CategoryID AND Circuits.CircuitID=Categories.CircuitID
-			LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
-			WHERE Circuits.CircuitID=?
-			AND SubCircuits.SubCircuitID=?
-			ORDER BY Components.ComponentID, Categories.CategoryID
-		`;
-		const response = await sql.query(query, [circuitId, subCircuitId]);
-		if (response.length === 0) {
+
+		const circuits = await sql.query('SELECT COUNT(*) as Count FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
+		if(circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const consolidated = consolidate(response);
-			resolve(consolidated.map(item => {
-				return {
-					documentationUrl: item['DocumentationUrl'],
-					componentId: item['ComponentID'],
-					bounds: {
-						x: item['RectX'],
-						y: item['RectY'],
-						width: item['Width'],
-						height: item['Height']
-					},
-					name: item['ComponentName'],
-					subCircuitId: item['SubCircuitID'],
-					circuitId: item['CircuitID'],
-					description: item['Description'],
-					category: {
-						color: item['RgbColor'],
-						name: item['CategoryName'],
-						categoryId: item['CategoryID'],
+			const query = `
+				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+				FROM Components
+				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
+				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
+				INNER JOIN Categories ON Components.CategoryID=Categories.CategoryID AND Circuits.CircuitID=Categories.CircuitID
+				LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
+				WHERE Circuits.CircuitID=?
+				AND SubCircuits.SubCircuitID=?
+				ORDER BY Components.ComponentID, Categories.CategoryID
+			`;
+			const response = await sql.query(query, [circuitId, subCircuitId]);
+			if (response.length === 0) {
+				resolve([]);
+			} else {
+				const consolidated = consolidate(response);
+				resolve(consolidated.map(item => {
+					return {
+						documentationUrl: item['DocumentationUrl'],
+						componentId: item['ComponentID'],
+						bounds: {
+							x: item['RectX'],
+							y: item['RectY'],
+							width: item['Width'],
+							height: item['Height']
+						},
+						name: item['ComponentName'],
+						subCircuitId: item['SubCircuitID'],
 						circuitId: item['CircuitID'],
-						tags: item['TagContent']
-					}
-				};
-			}));
+						description: item['Description'],
+						category: {
+							color: item['RgbColor'],
+							name: item['CategoryName'],
+							categoryId: item['CategoryID'],
+							circuitId: item['CircuitID'],
+							tags: item['TagContent']
+						}
+					};
+				}));
+			}
 		}
 		sql.end();
 	});
@@ -709,15 +722,20 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 exports.getSubCircuits = function (circuitId, side) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
-		const subCircuits = await sql.query('SELECT Image, ImageType, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=?', [circuitId, side === 'front']);
-		if(subCircuits.length === 0) {
+		const circuits = await sql.query('SELECT COUNT(*) as Count FROM Circuits WHERE CircuitID=?', [circuitId]);
+		if(circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			resolve(subCircuits.map(circuit => ({
-				image: circuit['Image'],
-				parentCircuitId: circuit['ParentCircuitID'],
-				subCircuitId: circuit['SubCircuitID']
-			})));
+			const subCircuits = await sql.query('SELECT Image, ImageType, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
+			if(subCircuits.length === 0) {
+				resolve([]);
+			} else {
+				resolve(subCircuits.map(circuit => ({
+					image: circuit['Image'],
+					parentCircuitId: circuit['ParentCircuitID'],
+					subCircuitId: circuit['SubCircuitID']
+				})));
+			}
 		}
 		sql.end();
 	});

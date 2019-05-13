@@ -179,6 +179,14 @@ paths:
         description: "GUID of the circuit"
         required: true
         type: "string"
+      - name: "side"
+        in: "query"
+        description: "Side of the circuit the components are on"
+        required: true
+        type: "string"
+        enum:
+        - "front"
+        - "back"
       responses:
         200:
           description: "Circuit is valid"

@@ -1,6 +1,10 @@
-.navbar-brand {
-    -webkit-user-select: none;        
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+.navbar-brand, .navbar-text {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.nav-link {
+	color: inherit;
 }

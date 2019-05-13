@@ -11,6 +11,8 @@ var app = require('connect')();
 var swaggerTools = require('swagger-tools');
 var jsyaml = require('js-yaml');
 var serverPort = 8080;
+var bodyParser = require('body-parser');
+
 
 // swaggerRouter configuration
 var options = {
@@ -24,12 +26,21 @@ var spec = fs.readFileSync(path.join(__dirname, 'api/swagger.yaml'), 'utf8');
 var swaggerDoc = jsyaml.safeLoad(spec);
 
 app.use(function (req, res, next) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, HEAD');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-
-    next();
+	res.setHeader('Access-Control-Allow-Origin', '*');
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, HEAD');
+	res.setHeader('Access-Control-Allow-Headers', '*');
+	
+	if(req.method === 'OPTIONS') {
+		res.writeHead(200);
+		res.end();
+	} else {
+		next();
+	}
 });
+
+app.use(bodyParser.json({
+	limit: 1024 * 1024 * 1024
+}));
 
 // Initialize the Swagger middleware
 swaggerTools.initializeMiddleware(swaggerDoc, function (middleware) {

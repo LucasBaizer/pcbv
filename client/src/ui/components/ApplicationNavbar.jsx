@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navbar, Nav } from 'react-bootstrap';
 import Api from '../../Api';
-import './ApplicationNavbar.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGithub } from '@fortawesome/free-solid-svg-icons';
+import { faGithub } from '@fortawesome/free-brands-svg-icons';
+import './ApplicationNavbar.css';
 
 export default class ApplicationNavbar extends React.Component {
     static lastPhrase = null;
@@ -45,25 +45,23 @@ export default class ApplicationNavbar extends React.Component {
     }
 
     navigateTo(location) {
-        console.log(location);
-        this.props.history.push(location);
-    }
+		this.props.history.push(location);
+	}
 
     render() {
         return (
             <Navbar bg="light">
-                <Navbar.Brand onClick={() => this.navigateTo('/')}>PCBV {!this.loading ? ('(' + this.state.phrase + ')') : ''}</Navbar.Brand>
+                <Navbar.Brand onClick={() => this.navigateTo('/')}>PCBV</Navbar.Brand>
                 <Navbar.Toggle />
                 <Navbar.Collapse>
-                    <Nav>
-                        <FontAwesomeIcon icon={faGithub} />
-                    </Nav>
-                </Navbar.Collapse>
-                <Navbar.Collapse className="justify-content-end">
                     <Nav>
                         <Nav.Link onClick={() => this.navigateTo('/create')}>Create</Nav.Link>
                         <Nav.Link onClick={() => this.navigateTo('/align')}>Component Alignment</Nav.Link>
                     </Nav>
+                </Navbar.Collapse>
+				<Navbar.Collapse className="justify-content-end">
+					<Navbar.Text>{!this.loading ? this.state.phrase : ''}</Navbar.Text>
+                    <Nav.Link href="https://github.com/LucasBaizer/pcbv"><FontAwesomeIcon icon={faGithub} size="lg" /></Nav.Link>
                 </Navbar.Collapse>
             </Navbar>
         );
