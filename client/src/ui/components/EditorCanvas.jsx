@@ -122,11 +122,13 @@ export default class EditorCanvas extends React.Component {
 				if (this.state.currentImage === null) {
 					const image = new Image();
 					image.onload = () => {
-						let width = canvas.width;
+						let width = $(canvas).width();
 						let height = (image.height / image.width) * width;
 
-						// $(canvas).height(height);
+						canvas.width = width;
 						canvas.height = height;
+
+						$(canvas).height(height);
 
 						this.setState({
 							canvasWidth: width,
@@ -141,11 +143,8 @@ export default class EditorCanvas extends React.Component {
  					*/
 					const ctx = canvas.getContext('2d');
 					ctx.fillStyle = '#FFFFFF';
-					console.log(this.state.canvasWidth);
 					ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
 
-					console.log('width: ' + canvas.clientWidth);
-					console.log('height: ' + canvas.clientHeight);
 					ctx.drawImage(this.state.currentImage, 0, 0, this.state.canvasWidth, this.state.canvasHeight);
 
 					ctx.strokeStyle = '#000000';
@@ -189,8 +188,7 @@ export default class EditorCanvas extends React.Component {
 						onMouseDownCapture={this.onMouseDown}
 						onMouseUpCapture={this.onMouseUp}
 						onMouseMoveCapture={this.onMouseMove}
-						onContextMenu={this.onRightClick}
-						height={this.state.canvasHeight} />
+						onContextMenu={this.onRightClick} />
 					<ButtonGroup style={{
 						visibility: this.state.contextMenuX === -1 ? 'hidden' : 'visible',
 						position: 'fixed',

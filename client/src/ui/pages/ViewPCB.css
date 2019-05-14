@@ -3,19 +3,11 @@
     padding-right: 0;
     margin-left: auto;
     margin-right: auto;
-    display: block;
 	width: 100%;
-	border: .2rem solid #ececec;
+	border: 0.2rem solid #ececec;
 	border-radius: 8px 0px 0px 0px;
 	padding: 0.5rem;
-	text-align: center;
 	position: relative;
-}
-
-.pcb-view-title {
-	margin: 0;
-	font-weight: bold;
-	font-size: 1.75rem;
 }
 
 .pcb-view-container {
@@ -31,16 +23,25 @@
 	padding-left: 0px;
 }
 
-.pcb-header-right, .pcb-header-right > svg {
-	position: absolute;
-	margin: auto;
-	top: 0px;
-	bottom: 0px;
-	right: 16px;
+.pcb-view-header > div {
 }
 
-.pcb-header-right > div {
-	position: relative;
+.pcb-view-header > svg {
 	margin: auto;
-	vertical-align: middle;
+	margin-left: 10px;
+	top: 0px;
+	bottom: 0px;
+	cursor: pointer;
+}
+
+.view-title-col {
+	text-align: center;
+	font-weight: bold;
+	font-size: 1.75rem;
+	width: 100%;
+	display: inline-block;
+}
+
+.view-buttons-col {
+	display: inline-block;
 }

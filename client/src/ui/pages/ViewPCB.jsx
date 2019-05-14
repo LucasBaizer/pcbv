@@ -65,14 +65,23 @@ export default class ViewPCB extends React.Component {
 					<Row>
 						<Col md={{ span: 9 }} className="pcb-left-pane">
 							<div className="pcb-view-header">
-								<span className="pcb-view-title">{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
-								<div className="pcb-header-right">
+								<div className="view-title-col">
+									<span>{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
+								</div>
+								<Col md={{ span: 1, offset: 10}} className="view-buttons-col">
+									<ButtonGroup toggle={true} onChange={this.onModeChange}>
+										<Button variant={this.state.mode === 'edit' ? 'primary' : 'light'} onClick={() => this.onModeChange('edit')}>Edit</Button>
+										<Button variant={this.state.mode === 'view' ? 'primary' : 'light'} onClick={() => this.onModeChange('view')}>View</Button>
+									</ButtonGroup>
+								</Col>
+								{/*<span className="pcb-view-title">{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
+								<div>
 									<ButtonGroup toggle={true} onChange={this.onModeChange}>
 										<Button variant={this.state.mode === 'edit' ? 'primary' : 'light'} onClick={() => this.onModeChange('edit')}>Edit</Button>
 										<Button variant={this.state.mode === 'view' ? 'primary' : 'light'} onClick={() => this.onModeChange('view')}>View</Button>
 									</ButtonGroup>
 									<FontAwesomeIcon icon={faSyncAlt} size="2x" onClick={this.onFlipSides} />
-								</div>
+								</div>*/}
 							</div>
 							<EditorCanvas circuit={this.state.circuit} side={this.state.currentSide} onLoad={this.onEditorLoaded} />
 						</Col>
