@@ -1,0 +1,16 @@
+#editor-canvas {
+	padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+	width: 1000px;
+	border: .2rem solid #ececec;
+	border-radius: 0px 0px 0px 8px;
+	padding: 1rem;
+	margin-top: -0.2rem;
+}
+
+.editor-context-menu {
+	z-index: 99;
+}

@@ -1,0 +1,18 @@
+.inspector-menu {
+	border: .2rem solid #ececec;
+	border-radius: 0px 8px 8px 0px;
+	margin-left: -0.2rem;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+}
+
+.inspector-default-text {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	max-width: 75%;
+}
