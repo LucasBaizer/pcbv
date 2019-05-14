@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Row, Col, Button, ButtonGroup } from 'react-bootstrap';
 import Api from '../../Api';
 import CenteredSpinner from '../components/CenteredSpinner';
 import EditorCanvas from '../components/EditorCanvas';
@@ -15,7 +15,8 @@ export default class ViewPCB extends React.Component {
 		this.state = {
 			circuit: null,
 			loading: true,
-			currentSide: 'front'
+			currentSide: 'front',
+			mode: 'edit'
 		};
 
 		Api.api.circuit.getCircuit({
@@ -28,6 +29,7 @@ export default class ViewPCB extends React.Component {
 
 		this.onEditorLoaded = this.onEditorLoaded.bind(this);
 		this.onFlipSides = this.onFlipSides.bind(this);
+		this.onModeChange = this.onModeChange.bind(this);
 	}
 
 	onEditorLoaded() {
@@ -43,6 +45,14 @@ export default class ViewPCB extends React.Component {
 		});
 	}
 
+	onModeChange(mode) {
+		if (mode !== this.state.mode) {
+			this.setState({
+				mode: mode
+			});
+		}
+	}
+
 	render() {
 		return (
 			<>
@@ -53,14 +63,20 @@ export default class ViewPCB extends React.Component {
 				) : (null)}
 				<Container className="pcb-view-container">
 					<Row>
-						<Col className="pcb-left-pane">
+						<Col md={{ span: 9 }} className="pcb-left-pane">
 							<div className="pcb-view-header">
 								<span className="pcb-view-title">{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
-								<FontAwesomeIcon icon={faSyncAlt} className="view-flip-sides" size="2x" onClick={this.onFlipSides} />
+								<div className="pcb-header-right">
+									<ButtonGroup toggle={true} onChange={this.onModeChange}>
+										<Button variant={this.state.mode === 'edit' ? 'primary' : 'light'} onClick={() => this.onModeChange('edit')}>Edit</Button>
+										<Button variant={this.state.mode === 'view' ? 'primary' : 'light'} onClick={() => this.onModeChange('view')}>View</Button>
+									</ButtonGroup>
+									<FontAwesomeIcon icon={faSyncAlt} size="2x" onClick={this.onFlipSides} />
+								</div>
 							</div>
 							<EditorCanvas circuit={this.state.circuit} side={this.state.currentSide} onLoad={this.onEditorLoaded} />
 						</Col>
-						<Col className="pcb-right-pane">
+						<Col md={{ span: 3 }} className="pcb-right-pane">
 							<EditorInspector />
 						</Col>
 					</Row>
