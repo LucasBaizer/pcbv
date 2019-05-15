@@ -23,7 +23,9 @@ export default class EditorCanvas extends React.Component {
 			currentImage: null,
 			contextMenuX: -1,
 			contextMenuY: -1,
-			scaleFactor: 1
+			scaleFactor: 1,
+			drawComponentX: 0,
+			drawComponentY: 0
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
@@ -76,23 +78,25 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	onMouseDown(e) {
-		if ((this.props.mode === 'view' && e.button === 0) || (this.props.mode === 'edit' && e.button === 1)) {
+		//if ((this.props.mode === 'view' && e.button === 0) || (this.props.mode === 'edit' && e.button === 1)) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 			this.setState({
 				isMouseDown: true,
-				startMouseX: e.clientX - rect.left - this.state.viewerOffsetX,
-				startMouseY: e.clientY - rect.top - this.state.viewerOffsetY,
+				startMouseX: e.pageX - rect.left - this.state.viewerOffsetX,
+				startMouseY: e.pageY - rect.top - this.state.viewerOffsetY,
 				contextMenuX: -1,
 				contextMenuY: -1
 			});
-		}
+		//}
 	}
 
 	onMouseUp() {
 		this.setState({
 			isMouseDown: false,
 			startMouseX: -1,
-			startMouseY: -1
+			startMouseY: -1,
+			drawComponentX: -1,
+			drawComponentY: -1
 		});
 	}
 
@@ -104,11 +108,18 @@ export default class EditorCanvas extends React.Component {
 		if (this.state.isMouseDown) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 
-			const offsets = this.getRescaleOffsets((e.clientX - rect.left) - this.state.startMouseX, (e.clientY - rect.top) - this.state.startMouseY, this.state.scaleFactor);
-			this.setState({
-				viewerOffsetX: offsets[0],
-				viewerOffsetY: offsets[1]
-			});
+			if (this.props.mode === 'view') {
+				const offsets = this.getRescaleOffsets((e.pageX - rect.left) - this.state.startMouseX, (e.pageY - rect.top) - this.state.startMouseY, this.state.scaleFactor);
+				this.setState({
+					viewerOffsetX: offsets[0],
+					viewerOffsetY: offsets[1]
+				});
+			} else if(this.props.mode === 'edit') {
+				this.setState({
+					drawComponentX: (e.pageX - rect.left) - this.state.startMouseX,
+					drawComponentY: (e.pageY - rect.top) - this.state.startMouseY
+				});
+			}
 		}
 	}
 
@@ -123,8 +134,8 @@ export default class EditorCanvas extends React.Component {
 		e.preventDefault();
 
 		this.setState({
-			contextMenuX: e.clientX,
-			contextMenuY: e.clientY
+			contextMenuX: e.pageX,
+			contextMenuY: e.pageY
 		});
 	}
 
@@ -216,11 +227,21 @@ export default class EditorCanvas extends React.Component {
 							component.bounds.height * heightRatio * this.state.scaleFactor);
 
 						ctx.fillStyle = '#000000';
-						ctx.font = (1.5 * this.state.scaleFactor) +  'rem Arial';
+						ctx.font = (1.5 * this.state.scaleFactor) + 'rem Arial';
 						ctx.fillText(
 							component.name,
 							(this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor,
 							(this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor);
+					}
+
+					if(this.state.drawComponentX !== -1 && this.state.drawComponentY !== -1) {
+						ctx.fillStyle = 'rgba(200, 200, 200, 0.75)';
+						ctx.fillRect(
+							this.state.startMouseX,
+							this.state.startMouseY,
+							this.state.drawComponentX,
+							this.state.drawComponentY
+						);
 					}
 				}
 			});
