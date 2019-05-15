@@ -64,26 +64,21 @@ export default class ViewPCB extends React.Component {
 				<Container className="pcb-view-container">
 					<Row>
 						<Col md={{ span: 9 }} className="pcb-left-pane">
-							<div className="pcb-view-header">
-								<div className="view-title-col">
-									<span>{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
-								</div>
-								<Col md={{ span: 1, offset: 10}} className="view-buttons-col">
+							<Row className="pcb-view-header">
+								<Col md={{ span: 9 }}>
+									<span className="pcb-view-title">{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
+								</Col>
+								<Col md={{ span: 2 }}>
 									<ButtonGroup toggle={true} onChange={this.onModeChange}>
 										<Button variant={this.state.mode === 'edit' ? 'primary' : 'light'} onClick={() => this.onModeChange('edit')}>Edit</Button>
 										<Button variant={this.state.mode === 'view' ? 'primary' : 'light'} onClick={() => this.onModeChange('view')}>View</Button>
 									</ButtonGroup>
 								</Col>
-								{/*<span className="pcb-view-title">{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
-								<div>
-									<ButtonGroup toggle={true} onChange={this.onModeChange}>
-										<Button variant={this.state.mode === 'edit' ? 'primary' : 'light'} onClick={() => this.onModeChange('edit')}>Edit</Button>
-										<Button variant={this.state.mode === 'view' ? 'primary' : 'light'} onClick={() => this.onModeChange('view')}>View</Button>
-									</ButtonGroup>
-									<FontAwesomeIcon icon={faSyncAlt} size="2x" onClick={this.onFlipSides} />
-								</div>*/}
-							</div>
-							<EditorCanvas circuit={this.state.circuit} side={this.state.currentSide} onLoad={this.onEditorLoaded} />
+								<Col md={{ span: 1 }}>
+									<FontAwesomeIcon icon={faSyncAlt} size="2x" onClick={this.onFlipSides} className="view-switch-icon" />
+								</Col>
+							</Row>
+							<EditorCanvas circuit={this.state.circuit} side={this.state.currentSide} mode={this.state.mode} onLoad={this.onEditorLoaded} />
 						</Col>
 						<Col md={{ span: 3 }} className="pcb-right-pane">
 							<EditorInspector />

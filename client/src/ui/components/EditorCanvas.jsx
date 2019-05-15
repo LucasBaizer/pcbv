@@ -22,12 +22,14 @@ export default class EditorCanvas extends React.Component {
 			viewerOffsetY: 0,
 			currentImage: null,
 			contextMenuX: -1,
-			contextMenuY: -1
+			contextMenuY: -1,
+			scaleFactor: 1
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
 		this.onMouseMove = this.onMouseMove.bind(this);
+		this.onScroll = this.onScroll.bind(this);
 		this.onRightClick = this.onRightClick.bind(this);
 	}
 
@@ -40,7 +42,8 @@ export default class EditorCanvas extends React.Component {
 				canvasWidth: 0,
 				canvasHeight: 0,
 				viewerOffsetX: 0,
-				viewerOffsetY: 0
+				viewerOffsetY: 0,
+				scaleFactor: 1
 			});
 
 			await this.updateCurrentSide();
@@ -73,14 +76,16 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	onMouseDown(e) {
-		const rect = $('#editor-canvas')[0].getBoundingClientRect();
-		this.setState({
-			isMouseDown: true,
-			startMouseX: e.clientX - rect.left - this.state.viewerOffsetX,
-			startMouseY: e.clientY - rect.top - this.state.viewerOffsetY,
-			contextMenuX: -1,
-			contextMenuY: -1
-		});
+		if ((this.props.mode === 'view' && e.button === 0) || (this.props.mode === 'edit' && e.button === 1)) {
+			const rect = $('#editor-canvas')[0].getBoundingClientRect();
+			this.setState({
+				isMouseDown: true,
+				startMouseX: e.clientX - rect.left - this.state.viewerOffsetX,
+				startMouseY: e.clientY - rect.top - this.state.viewerOffsetY,
+				contextMenuX: -1,
+				contextMenuY: -1
+			});
+		}
 	}
 
 	onMouseUp() {
@@ -91,15 +96,55 @@ export default class EditorCanvas extends React.Component {
 		});
 	}
 
+	clamp(x, low, high) {
+		return Math.min(Math.max(x, low), high);
+	}
+
 	onMouseMove(e) {
-		/*if (this.state.isMouseDown) {
+		if (this.state.isMouseDown) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 
+			const offsets = this.getRescaleOffsets((e.clientX - rect.left) - this.state.startMouseX, (e.clientY - rect.top) - this.state.startMouseY, this.state.scaleFactor);
 			this.setState({
-				viewerOffsetX: (e.clientX - rect.left) - this.state.startMouseX,
-				viewerOffsetY: (e.clientY - rect.top) - this.state.startMouseY
+				viewerOffsetX: offsets[0],
+				viewerOffsetY: offsets[1]
 			});
-		}*/
+		}
+	}
+
+	getRescaleOffsets(changeX, changeY, scale) {
+		return [
+			Math.min(0, Math.max(changeX, -(this.state.currentImage.width - this.state.currentImage.width / scale))),
+			Math.min(0, Math.max(changeY, -(this.state.currentImage.height - this.state.currentImage.height / scale)))
+		];
+	}
+
+	onRightClick(e) {
+		e.preventDefault();
+
+		this.setState({
+			contextMenuX: e.clientX,
+			contextMenuY: e.clientY
+		});
+	}
+
+	onContextMenuClick(button) {
+		this.setState({
+			contextMenuX: -1,
+			contextMenuY: -1
+		});
+	}
+
+	onScroll(e) {
+		const increase = -e.deltaY / 500;
+		const newScale = this.clamp(this.state.scaleFactor + increase, 1, 5);
+		const offsets = this.getRescaleOffsets(this.state.viewerOffsetX, this.state.viewerOffsetY, newScale);
+		this.setState({
+			scaleFactor: newScale,
+			viewerOffsetX: offsets[0],
+			viewerOffsetY: offsets[1]
+		});
+
 	}
 
 	hexToRgb(hex) {
@@ -145,36 +190,41 @@ export default class EditorCanvas extends React.Component {
 					ctx.fillStyle = '#FFFFFF';
 					ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
 
-					ctx.drawImage(this.state.currentImage, 0, 0, this.state.canvasWidth, this.state.canvasHeight);
+					const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
+					const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
+
+					ctx.drawImage(
+						this.state.currentImage,
+						-this.state.viewerOffsetX,
+						-this.state.viewerOffsetY,
+						this.state.currentImage.width / this.state.scaleFactor,
+						this.state.currentImage.height / this.state.scaleFactor,
+						0,
+						0,
+						this.state.canvasWidth,
+						this.state.canvasHeight);
 
 					ctx.strokeStyle = '#000000';
+
 					for (const component of this.state.rootComponents) {
 						const rgb = this.hexToRgb(component.category.color);
-						ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.5)';
-						ctx.fillRect(component.bounds.x, component.bounds.y, component.bounds.width, component.bounds.height);
+						ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.75)';
+						ctx.fillRect(
+							(this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor,
+							(this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor,
+							component.bounds.width * widthRatio * this.state.scaleFactor,
+							component.bounds.height * heightRatio * this.state.scaleFactor);
 
 						ctx.fillStyle = '#000000';
-						ctx.fillText(component.name, component.bounds.x, component.bounds.y);
+						ctx.font = (1.5 * this.state.scaleFactor) +  'rem Arial';
+						ctx.fillText(
+							component.name,
+							(this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor,
+							(this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor);
 					}
 				}
 			});
 		}, 0);
-	}
-
-	onRightClick(e) {
-		e.preventDefault();
-
-		this.setState({
-			contextMenuX: e.clientX,
-			contextMenuY: e.clientY
-		});
-	}
-
-	onContextMenuClick(button) {
-		this.setState({
-			contextMenuX: -1,
-			contextMenuY: -1
-		});
 	}
 
 	render() {
@@ -188,8 +238,9 @@ export default class EditorCanvas extends React.Component {
 						onMouseDownCapture={this.onMouseDown}
 						onMouseUpCapture={this.onMouseUp}
 						onMouseMoveCapture={this.onMouseMove}
-						onContextMenu={this.onRightClick} />
-					<ButtonGroup style={{
+						onWheelCapture={this.onScroll}
+						/*onContextMenu={this.onRightClick}*/ />
+					{/*<ButtonGroup style={{
 						visibility: this.state.contextMenuX === -1 ? 'hidden' : 'visible',
 						position: 'fixed',
 						left: this.state.contextMenuX,
@@ -197,7 +248,7 @@ export default class EditorCanvas extends React.Component {
 					}} className="editor-context-menu" vertical={true}>
 						<Button variant="light" onClick={() => this.onContextMenuClick('component')}>New Component</Button>
 						<Button variant="light" onClick={() => this.onContextMenuClick('subCircuit')}>New Subcircuit</Button>
-					</ButtonGroup>
+					</ButtonGroup>*/}
 				</>
 			);
 		} else {

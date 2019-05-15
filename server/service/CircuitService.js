@@ -610,7 +610,7 @@ exports.getCircuitComponents = function (circuitId, side) {
 		} else {
 			const sql = await util.connect();
 			const query = `
-				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
 				FROM Components
 				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
@@ -633,8 +633,8 @@ exports.getCircuitComponents = function (circuitId, side) {
 						bounds: {
 							x: item['RectX'],
 							y: item['RectY'],
-							width: item['Width'],
-							height: item['Height']
+							width: item['RectWidth'],
+							height: item['RectHeight']
 						},
 						name: item['ComponentName'],
 						subCircuitId: item['SubCircuitID'],

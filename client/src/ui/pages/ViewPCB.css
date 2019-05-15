@@ -23,25 +23,17 @@
 	padding-left: 0px;
 }
 
-.pcb-view-header > div {
+.pcb-view-title {
+	font-weight: bold;
+	font-size: 2rem;
 }
 
-.pcb-view-header > svg {
+.pcb-view-header > div {
 	margin: auto;
-	margin-left: 10px;
 	top: 0px;
 	bottom: 0px;
+}
+
+.view-switch-icon {
 	cursor: pointer;
-}
-
-.view-title-col {
-	text-align: center;
-	font-weight: bold;
-	font-size: 1.75rem;
-	width: 100%;
-	display: inline-block;
-}
-
-.view-buttons-col {
-	display: inline-block;
 }
