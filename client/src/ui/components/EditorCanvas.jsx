@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Button, ButtonGroup } from 'react-bootstrap';
 import Api from '../../Api';
 import './EditorCanvas.css';
 
@@ -12,6 +11,7 @@ export default class EditorCanvas extends React.Component {
 		this.state = {
 			subCircuits: null,
 			rootComponents: null,
+			categories: null,
 			loaded: false,
 			isMouseDown: false,
 			startMouseX: -1,
@@ -25,7 +25,9 @@ export default class EditorCanvas extends React.Component {
 			contextMenuY: -1,
 			scaleFactor: 1,
 			drawComponentX: 0,
-			drawComponentY: 0
+			drawComponentY: 0,
+			temporaryComponents: [],
+			currentSubCircuit: -1
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
@@ -45,7 +47,9 @@ export default class EditorCanvas extends React.Component {
 				canvasHeight: 0,
 				viewerOffsetX: 0,
 				viewerOffsetY: 0,
-				scaleFactor: 1
+				scaleFactor: 1,
+				temporaryComponents: [],
+				currentSubCircuit: -1
 			});
 
 			await this.updateCurrentSide();
@@ -69,28 +73,65 @@ export default class EditorCanvas extends React.Component {
 			circuitId: this.props.circuit.circuitId,
 			side: this.props.side
 		});
+		const categories = await Api.api.circuit.getCircuitCategories({
+			circuitId: this.props.circuit.circuitId
+		});
 
 		this.setState({
 			subCircuits: subCircuits.body,
 			rootComponents: rootComponents.body,
+			categories: categories.body,
 			loaded: true
 		});
 	}
 
 	onMouseDown(e) {
 		//if ((this.props.mode === 'view' && e.button === 0) || (this.props.mode === 'edit' && e.button === 1)) {
-			const rect = $('#editor-canvas')[0].getBoundingClientRect();
-			this.setState({
-				isMouseDown: true,
-				startMouseX: e.pageX - rect.left - this.state.viewerOffsetX,
-				startMouseY: e.pageY - rect.top - this.state.viewerOffsetY,
-				contextMenuX: -1,
-				contextMenuY: -1
-			});
+		const rect = $('#editor-canvas')[0].getBoundingClientRect();
+		this.setState({
+			isMouseDown: true,
+			startMouseX: e.pageX - rect.left - this.state.viewerOffsetX,
+			startMouseY: e.pageY - rect.top - this.state.viewerOffsetY,
+			contextMenuX: -1,
+			contextMenuY: -1
+		});
 		//}
 	}
 
 	onMouseUp() {
+		if (this.props.mode === 'edit' && (this.state.drawComponentX > this.state.canvasWidth / 25 && this.state.drawComponentY > this.state.canvasHeight / 25)) {
+			const increaseX = this.state.currentImage.width / this.state.canvasWidth;
+			const increaseY = this.state.currentImage.height / this.state.canvasHeight;
+			const noneCategory = this.state.categories.filter(x => x.name === 'None')[0];
+			const component = {
+				documentationUrl: '',
+				bounds: {
+					x: this.state.startMouseX * increaseX,
+					y: this.state.startMouseY * increaseY,
+					width: this.state.drawComponentX * increaseX,
+					height: this.state.drawComponentY * increaseY
+				},
+				name: 'New Component',
+				description: '',
+				categoryId: noneCategory.categoryId,
+				category: noneCategory
+			};
+
+			$.ajax({
+				method: 'POST',
+				url: 'http://localhost:8080/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
+				contentType: 'application/json',
+				data: JSON.stringify(component)
+			});
+
+			/*Api.api.circuit.createComponent({
+				circuitId: this.props.circuit.circuitId,
+				side: this.props.side,
+				body: component
+			});*/
+
+			this.state.rootComponents.push(component);
+		}
 		this.setState({
 			isMouseDown: false,
 			startMouseX: -1,
@@ -114,7 +155,7 @@ export default class EditorCanvas extends React.Component {
 					viewerOffsetX: offsets[0],
 					viewerOffsetY: offsets[1]
 				});
-			} else if(this.props.mode === 'edit') {
+			} else if (this.props.mode === 'edit') {
 				this.setState({
 					drawComponentX: (e.pageX - rect.left) - this.state.startMouseX,
 					drawComponentY: (e.pageY - rect.top) - this.state.startMouseY
@@ -234,11 +275,11 @@ export default class EditorCanvas extends React.Component {
 							(this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor);
 					}
 
-					if(this.state.drawComponentX !== -1 && this.state.drawComponentY !== -1) {
+					if (this.state.drawComponentX !== -1 && this.state.drawComponentY !== -1) {
 						ctx.fillStyle = 'rgba(200, 200, 200, 0.75)';
 						ctx.fillRect(
-							this.state.startMouseX,
-							this.state.startMouseY,
+							this.state.startMouseX - 20,
+							this.state.startMouseY - 20,
 							this.state.drawComponentX,
 							this.state.drawComponentY
 						);

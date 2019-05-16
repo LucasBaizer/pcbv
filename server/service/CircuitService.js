@@ -115,6 +115,7 @@ exports.createCircuit = function (body) {
 				});
 				if (subAttempt) {
 					const defaultCategories = [
+						[id, 'None', 'C8C8C8'],
 						[id, 'Memory', 'FF00FF'],
 						[id, 'CPU', 'FFFFFF'],
 						[id, 'Flash', 'FF0000'],
