@@ -112,8 +112,8 @@ export default class EditorCanvas extends React.Component {
 			const component = {
 				documentationUrl: '',
 				bounds: {
-					x: this.state.startMouseX - 20,
-					y: this.state.startMouseY - 20,
+					x: (this.state.canvasLocalMouseX - this.state.viewerOffsetX) * increaseX / this.state.scaleFactor,
+					y: ((this.state.canvasLocalMouseY - 20) * increaseY - this.state.viewerOffsetY) / this.state.scaleFactor,
 					width: this.state.drawComponentX * increaseX / this.state.scaleFactor,
 					height: this.state.drawComponentY * increaseY / this.state.scaleFactor
 				},
