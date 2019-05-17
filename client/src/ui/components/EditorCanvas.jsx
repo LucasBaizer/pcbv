@@ -16,6 +16,8 @@ export default class EditorCanvas extends React.Component {
 			isMouseDown: false,
 			startMouseX: -1,
 			startMouseY: -1,
+			canvasLocalMouseX: -1,
+			canvasLocalMouseY: -1,
 			canvasWidth: 0,
 			canvasHeight: 0,
 			viewerOffsetX: 0,
@@ -43,6 +45,8 @@ export default class EditorCanvas extends React.Component {
 				currentImage: null,
 				startMouseX: -1,
 				startMouseY: -1,
+				canvasLocalMouseX: -1,
+				canvasLocalMouseY: -1,
 				canvasWidth: 0,
 				canvasHeight: 0,
 				viewerOffsetX: 0,
@@ -92,6 +96,8 @@ export default class EditorCanvas extends React.Component {
 			isMouseDown: true,
 			startMouseX: e.pageX - rect.left - this.state.viewerOffsetX,
 			startMouseY: e.pageY - rect.top - this.state.viewerOffsetY,
+			canvasLocalMouseX: e.pageX - rect.left,
+			canvasLocalMouseY: e.pageY - rect.top,
 			contextMenuX: -1,
 			contextMenuY: -1
 		});
@@ -99,17 +105,17 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	onMouseUp() {
-		if (this.props.mode === 'edit' && (this.state.drawComponentX > this.state.canvasWidth / 25 && this.state.drawComponentY > this.state.canvasHeight / 25)) {
+		if (this.props.mode === 'edit' && (this.state.drawComponentX > this.state.canvasWidth / 30 && this.state.drawComponentY > this.state.canvasHeight / 30)) {
 			const increaseX = this.state.currentImage.width / this.state.canvasWidth;
 			const increaseY = this.state.currentImage.height / this.state.canvasHeight;
 			const noneCategory = this.state.categories.filter(x => x.name === 'None')[0];
 			const component = {
 				documentationUrl: '',
 				bounds: {
-					x: this.state.startMouseX * increaseX,
-					y: this.state.startMouseY * increaseY,
-					width: this.state.drawComponentX * increaseX,
-					height: this.state.drawComponentY * increaseY
+					x: this.state.startMouseX - 20,
+					y: this.state.startMouseY - 20,
+					width: this.state.drawComponentX * increaseX / this.state.scaleFactor,
+					height: this.state.drawComponentY * increaseY / this.state.scaleFactor
 				},
 				name: 'New Component',
 				description: '',
@@ -124,18 +130,14 @@ export default class EditorCanvas extends React.Component {
 				data: JSON.stringify(component)
 			});
 
-			/*Api.api.circuit.createComponent({
-				circuitId: this.props.circuit.circuitId,
-				side: this.props.side,
-				body: component
-			});*/
-
 			this.state.rootComponents.push(component);
 		}
 		this.setState({
 			isMouseDown: false,
 			startMouseX: -1,
 			startMouseY: -1,
+			canvasLocalMouseX: -1,
+			canvasLocalMouseY: -1,
 			drawComponentX: -1,
 			drawComponentY: -1
 		});
@@ -157,8 +159,8 @@ export default class EditorCanvas extends React.Component {
 				});
 			} else if (this.props.mode === 'edit') {
 				this.setState({
-					drawComponentX: (e.pageX - rect.left) - this.state.startMouseX,
-					drawComponentY: (e.pageY - rect.top) - this.state.startMouseY
+					drawComponentX: (e.pageX - rect.left) - this.state.canvasLocalMouseX,
+					drawComponentY: (e.pageY - rect.top) - this.state.canvasLocalMouseY
 				});
 			}
 		}
@@ -278,8 +280,8 @@ export default class EditorCanvas extends React.Component {
 					if (this.state.drawComponentX !== -1 && this.state.drawComponentY !== -1) {
 						ctx.fillStyle = 'rgba(200, 200, 200, 0.75)';
 						ctx.fillRect(
-							this.state.startMouseX - 20,
-							this.state.startMouseY - 20,
+							this.state.canvasLocalMouseX - 20,
+							this.state.canvasLocalMouseY - 20,
 							this.state.drawComponentX,
 							this.state.drawComponentY
 						);

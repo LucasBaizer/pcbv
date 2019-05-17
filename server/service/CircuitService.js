@@ -4,11 +4,11 @@ const uuid = require('uuid/v1');
 const writer = require('../utils/writer');
 const util = require('./ServiceUtil');
 
-function consolidate(categorySql) {
+function consolidate(categorySql, idField) {
 	const categories = [];
 	let currentCategory = null;
 	for (const category of categorySql) {
-		if (currentCategory === null || currentCategory['CategoryID'] !== category['CategoryID']) {
+		if (currentCategory === null || currentCategory[idField] !== category[idField]) { // CategoryID
 			if (currentCategory !== null) {
 				categories.push(currentCategory);
 				currentCategory = null;
@@ -626,7 +626,7 @@ exports.getCircuitComponents = function (circuitId, side) {
 			if (response.length === 0) {
 				resolve([]);
 			} else {
-				const consolidated = consolidate(response);
+				const consolidated = consolidate(response, 'ComponentID');
 				resolve(consolidated.map(item => {
 					return {
 						documentationUrl: item['DocumentationUrl'],
@@ -687,7 +687,7 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 			if (response.length === 0) {
 				resolve([]);
 			} else {
-				const consolidated = consolidate(response);
+				const consolidated = consolidate(response, 'ComponentID');
 				resolve(consolidated.map(item => {
 					return {
 						documentationUrl: item['DocumentationUrl'],
