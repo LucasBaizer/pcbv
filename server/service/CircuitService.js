@@ -462,10 +462,11 @@ exports.deleteCircuitComponent = function (circuitId, componentId) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const query = `
-			DELETE FROM Components
+			DELETE Components
+			FROM Components
 			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
-			WHERE Circuits.CircutID=?
+			WHERE Circuits.CircuitID=?
 			AND SubCircuits.IsRoot=TRUE
 			AND ComponentID=?
 		`;
@@ -516,7 +517,7 @@ exports.deleteSubCircuitComponent = function (circuitId, subCircuitId, component
 			DELETE FROM Components
 			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
-			WHERE Circuits.CircutID=?
+			WHERE Circuits.CircuitID=?
 			AND SubCircuits.SubCircuitID=?
 			AND ComponentID=?
 		`;
@@ -788,23 +789,25 @@ exports.updateCircuitComponent = function (circuitId, componentId, body) {
 			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
 			SET ?
-			WHERE CircuitID=? AND ComponentID=?
+			WHERE CircuitID=?
+			AND ComponentID=?
+			AND SubCircuits.IsRoot=TRUE
 		`;
 		const data = {};
-		if(body.documentationUrl !== undefined) {
+		if (body.documentationUrl !== undefined) {
 			data['DocumentationUrl'] = body.documentationUrl;
 		}
-		if(body.description !== undefined) {
+		if (body.description !== undefined) {
 			data['Description'] = body.description;
 		}
-		if(body.name !== undefined) {
+		if (body.name !== undefined) {
 			data['Components.Name'] = body.name;
 		}
-		if(body.categoryId !== undefined) {
+		if (body.categoryId !== undefined) {
 			data['CategoryID'] = body.categoryId;
 		}
 		const response = await sql.query(query, [data, circuitId, componentId]);
-		if(response.affectedRows === 0) {
+		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			resolve(body);
@@ -824,33 +827,36 @@ exports.updateCircuitComponent = function (circuitId, componentId, body) {
  * returns Component
  **/
 exports.updateSubCircuitComponent = function (circuitId, subCircuitId, componentId, body) {
-	return new Promise(function (resolve, reject) {
-		var examples = {};
-		examples['application/json'] = {
-			"documentationUrl": "http://example.com",
-			"componentId": 1,
-			"cirucitId": "505b791a-b324-4880-8b76-aeca2e054dca",
-			"bounds": {
-				"x": 500,
-				"width": 200,
-				"y": 1000,
-				"height": 200
-			},
-			"name": "My Component",
-			"subCircuitId": 1,
-			"description": "My Component is used do to x, y, and z",
-			"category": {
-				"color": "FF00FF",
-				"name": "Memory",
-				"categoryId": 1,
-				"circuitId": "505b791a-b324-4880-8b76-aeca2e054dca",
-				"tags": ["ddr", "gb"]
-			}
-		};
-		if (Object.keys(examples).length > 0) {
-			resolve(examples[Object.keys(examples)[0]]);
-		} else {
-			resolve();
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+		const query = `
+			UPDATE Components
+			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
+			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
+			SET ?
+			WHERE CircuitID=?
+			AND ComponentID=?
+			AND SubCircuits.SubCircuitID=?
+		`;
+		const data = {};
+		if (body.documentationUrl !== undefined) {
+			data['DocumentationUrl'] = body.documentationUrl;
 		}
+		if (body.description !== undefined) {
+			data['Description'] = body.description;
+		}
+		if (body.name !== undefined) {
+			data['Components.Name'] = body.name;
+		}
+		if (body.categoryId !== undefined) {
+			data['CategoryID'] = body.categoryId;
+		}
+		const response = await sql.query(query, [data, circuitId, componentId, subCircuitId]);
+		if (response.affectedRows === 0) {
+			resolve(writer.respondWithCode(404));
+		} else {
+			resolve(body);
+		}
+		sql.end();
 	});
 }

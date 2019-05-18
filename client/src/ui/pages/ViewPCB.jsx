@@ -33,12 +33,16 @@ export default class ViewPCB extends React.Component {
 		this.onModeChange = this.onModeChange.bind(this);
 		this.onComponentSelected = this.onComponentSelected.bind(this);
 		this.onComponentUpdate = this.onComponentUpdate.bind(this);
+		this.onChangeCategories = this.onChangeCategories.bind(this);
+		this.onUpdateCategories = this.onUpdateCategories.bind(this);
 	}
 
 	onEditorLoaded() {
 		this.setState({
 			loading: false
 		});
+
+		this.onChangeCategories(this.editorInspector.circuitEditorInspector.state.selectedCategories);
 	}
 
 	onFlipSides() {
@@ -46,6 +50,8 @@ export default class ViewPCB extends React.Component {
 			currentSide: this.state.currentSide === 'front' ? 'back' : 'front',
 			loading: true
 		});
+
+		this.onChangeCategories(this.editorInspector.circuitEditorInspector.state.selectedCategories);
 	}
 
 	onModeChange(mode) {
@@ -62,12 +68,27 @@ export default class ViewPCB extends React.Component {
 		});
 	}
 
-	onComponentUpdate(component) {
-		this.setState({
-			selectedComponent: component
-		});
+	onComponentUpdate(component, type) {
+		if(type === 'delete') {
+			this.setState({
+				selectedComponent: null
+			});
+		} else {
+			this.setState({
+				selectedComponent: component
+			});
+		}
 
-		this.editorCanvas.updateCurrentComponent(component);
+		this.editorCanvas.updateCurrentComponent(component, type);
+	}
+
+	onChangeCategories(categories) {
+		this.editorCanvas.updateSelectedCategories(categories);	
+	}
+
+	onUpdateCategories(categories) {
+		this.editorCanvas.updateCategories(categories);
+		this.editorInspector.updateCategories(categories);
 	}
 
 	render() {
@@ -105,9 +126,12 @@ export default class ViewPCB extends React.Component {
 						</Col>
 						<Col md={{ span: 3 }} className="pcb-right-pane">
 							<EditorInspector
+								ref={editorInspector => this.editorInspector = editorInspector}
 								circuit={this.state.circuit}
 								component={this.state.selectedComponent}
-								onComponentUpdate={this.onComponentUpdate} />
+								onComponentUpdate={this.onComponentUpdate}
+								onChangeCategories={this.onChangeCategories}
+								onUpdateCategories={this.onUpdateCategories} />
 						</Col>
 					</Row>
 				</Container>

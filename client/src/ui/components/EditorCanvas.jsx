@@ -12,8 +12,10 @@ export default class EditorCanvas extends React.Component {
 			subCircuits: null,
 			rootComponents: null,
 			categories: null,
+			selectedCategories: [],
 			loaded: false,
 			isMouseDown: false,
+			mouseMoved: false,
 			currentMouseButton: -1,
 			startMouseX: -1,
 			startMouseY: -1,
@@ -79,30 +81,56 @@ export default class EditorCanvas extends React.Component {
 			circuitId: this.props.circuit.circuitId,
 			side: this.props.side
 		});
-		this.setState({
-			rootComponents: rootComponents.body
-		});
 		const categories = await Api.api.circuit.getCircuitCategories({
 			circuitId: this.props.circuit.circuitId
 		});
 
 		this.setState({
+			rootComponents: rootComponents.body,
 			subCircuits: subCircuits.body,
 			categories: categories.body,
 			loaded: true
 		});
 	}
 
-	updateCurrentComponent(component) {
-		const clone = [...this.state.rootComponents];
-		clone[clone.findIndex(value => value.componentId === component.componentId)] = component;
+	updateCategories(categories) {
+		for(const component of this.state.rootComponents) {
+			for(const category of categories) {
+				if(component.category.categoryId === category.categoryId) {
+					component.category = category;
+				}
+			}
+		}
 		this.setState({
-			rootComponents: clone
+			categories: categories
+		});
+	}
+
+	updateCurrentComponent(component, type) {
+		const clone = [...this.state.rootComponents];
+		const index = clone.findIndex(value => value.componentId === component.componentId);
+
+		if (type === 'delete') {
+			clone.splice(index, 1);
+			this.setState({
+				rootComponents: clone,
+				selectedComponentId: -1
+			});
+		} else {
+			clone[index] = component;
+			this.setState({
+				rootComponents: clone
+			});
+		}
+	}
+
+	updateSelectedCategories(categories) {
+		this.setState({
+			selectedCategories: categories
 		});
 	}
 
 	onMouseDown(e) {
-		//if ((this.props.mode === 'view' && e.button === 0) || (this.props.mode === 'edit' && e.button === 1)) {
 		const rect = $('#editor-canvas')[0].getBoundingClientRect();
 		this.setState({
 			isMouseDown: true,
@@ -114,7 +142,6 @@ export default class EditorCanvas extends React.Component {
 			contextMenuX: -1,
 			contextMenuY: -1
 		});
-		//}
 	}
 
 	onMouseUp(e) {
@@ -146,24 +173,31 @@ export default class EditorCanvas extends React.Component {
 					const clone = [...this.state.rootComponents];
 					clone[this.state.rootComponents.length - 1] = data;
 					this.setState({
-						rootComponents: clone
+						rootComponents: clone,
+						selectedComponentId: data.componentId
 					});
 					this.props.onComponentSelected(data);
 				}
 			});
 
 			this.state.rootComponents.push(component);
-		} else if (this.props.mode === 'edit') {
+		} else if(!this.state.mouseMoved) {
+			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
 			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
 
 			for (const component of this.state.rootComponents) {
+				const px = e.pageX - rect.left - 20;
+				const py = e.pageY - rect.top - 20;
 				const x = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor;
 				const y = (this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor;
 				const w = component.bounds.width * widthRatio * this.state.scaleFactor;
 				const h = component.bounds.height * heightRatio * this.state.scaleFactor;
 
-				if (this.state.canvasLocalMouseX - 20 > x && this.state.canvasLocalMouseX - 20 < x + w && this.state.canvasLocalMouseY - 20 > y && this.state.canvasLocalMouseY - 20 < y + h) {
+				if (px > x && px < x + w && py > y && py < y + h) {
+					if(this.state.selectedComponentId === component.componentId) {
+						break;
+					}
 					changedSelectedComponent = true;
 					this.setState({
 						selectedComponentId: component.componentId
@@ -175,6 +209,7 @@ export default class EditorCanvas extends React.Component {
 		}
 		const newState = {
 			isMouseDown: false,
+			mouseMoved: false,
 			currentMouseButton: -1,
 			startMouseX: -1,
 			startMouseY: -1,
@@ -208,6 +243,12 @@ export default class EditorCanvas extends React.Component {
 				this.setState({
 					drawComponentX: (e.pageX - rect.left) - this.state.canvasLocalMouseX,
 					drawComponentY: (e.pageY - rect.top) - this.state.canvasLocalMouseY
+				});
+			}
+
+			if(!this.state.mouseMoved) {
+				this.setState({
+					mouseMoved: true
 				});
 			}
 		}
@@ -308,6 +349,10 @@ export default class EditorCanvas extends React.Component {
 					ctx.strokeStyle = '#000000';
 
 					for (const component of this.state.rootComponents) {
+						if (this.state.selectedCategories.indexOf(component.category.categoryId) === -1) {
+							continue;
+						}
+
 						const rgb = this.hexToRgb(component.category.color);
 						if (this.state.selectedComponentId === component.componentId) {
 							ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';

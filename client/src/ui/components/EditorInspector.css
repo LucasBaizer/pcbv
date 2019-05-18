@@ -24,3 +24,63 @@
 	margin-top: 20px;
 	text-align: center;
 }
+
+.inspector-delete-button {
+	float: right;
+}
+
+.inspector-category {
+	padding: 0.25rem 0.3125rem !important;
+	cursor: pointer;
+}
+
+.inspector-clickable-icon {
+	cursor: pointer;
+}
+
+.inspector-trash-icon {
+	margin: auto;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	right: 10px;
+}
+
+.inspector-color-cube {
+	margin: auto;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 10px;
+	width: 1.5rem;
+	height: 1.5rem;
+	border: 1px solid black;
+	border-radius: 4px;
+}
+
+.inspector-category-name {
+	margin-left: calc(20px + 1.5rem);
+}
+
+.inspector-color-header {
+	background-color: white;
+	border-radius: 4px 4px 0px 0px !important;
+	border: 1px solid #ececec;
+	border-bottom: none;
+	padding-bottom: 10px;
+}
+
+.sketch-picker {
+	box-shadow: none !important;
+	border-radius: 0px 0px 4px 4px !important;
+	border: 1px solid #ececec;
+	border-top: none;
+}
+
+.inspector-color-close {
+	margin: auto;
+	position: absolute;
+	right: 0px;
+	width: 100%;
+	cursor: pointer;
+}
