@@ -3,6 +3,9 @@
 	border-radius: 0px 8px 8px 0px;
 	margin-left: -0.2rem;
 	height: 100%;
+}
+
+.inspector-unselected {
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -15,4 +18,9 @@
 	-ms-user-select: none;
 	user-select: none;
 	max-width: 75%;
+}
+
+.inspector-header {
+	margin-top: 20px;
+	text-align: center;
 }

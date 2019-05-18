@@ -16,7 +16,8 @@ export default class ViewPCB extends React.Component {
 			circuit: null,
 			loading: true,
 			currentSide: 'front',
-			mode: 'edit'
+			mode: 'edit',
+			selectedComponent: null
 		};
 
 		Api.api.circuit.getCircuit({
@@ -30,6 +31,8 @@ export default class ViewPCB extends React.Component {
 		this.onEditorLoaded = this.onEditorLoaded.bind(this);
 		this.onFlipSides = this.onFlipSides.bind(this);
 		this.onModeChange = this.onModeChange.bind(this);
+		this.onComponentSelected = this.onComponentSelected.bind(this);
+		this.onComponentUpdate = this.onComponentUpdate.bind(this);
 	}
 
 	onEditorLoaded() {
@@ -51,6 +54,20 @@ export default class ViewPCB extends React.Component {
 				mode: mode
 			});
 		}
+	}
+
+	onComponentSelected(component) {
+		this.setState({
+			selectedComponent: component
+		});
+	}
+
+	onComponentUpdate(component) {
+		this.setState({
+			selectedComponent: component
+		});
+
+		this.editorCanvas.updateCurrentComponent(component);
 	}
 
 	render() {
@@ -78,10 +95,19 @@ export default class ViewPCB extends React.Component {
 									<FontAwesomeIcon icon={faSyncAlt} size="2x" onClick={this.onFlipSides} className="view-switch-icon" />
 								</Col>
 							</Row>
-							<EditorCanvas circuit={this.state.circuit} side={this.state.currentSide} mode={this.state.mode} onLoad={this.onEditorLoaded} />
+							<EditorCanvas
+								ref={editorCanvas => this.editorCanvas = editorCanvas}
+								circuit={this.state.circuit}
+								side={this.state.currentSide}
+								mode={this.state.mode}
+								onLoad={this.onEditorLoaded}
+								onComponentSelected={this.onComponentSelected} />
 						</Col>
 						<Col md={{ span: 3 }} className="pcb-right-pane">
-							<EditorInspector />
+							<EditorInspector
+								circuit={this.state.circuit}
+								component={this.state.selectedComponent}
+								onComponentUpdate={this.onComponentUpdate} />
 						</Col>
 					</Row>
 				</Container>

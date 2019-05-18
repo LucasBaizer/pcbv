@@ -30,7 +30,8 @@ export default class EditorCanvas extends React.Component {
 			drawComponentX: 0,
 			drawComponentY: 0,
 			temporaryComponents: [],
-			currentSubCircuit: -1
+			currentSubCircuit: -1,
+			selectedComponentId: -1
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
@@ -78,15 +79,25 @@ export default class EditorCanvas extends React.Component {
 			circuitId: this.props.circuit.circuitId,
 			side: this.props.side
 		});
+		this.setState({
+			rootComponents: rootComponents.body
+		});
 		const categories = await Api.api.circuit.getCircuitCategories({
 			circuitId: this.props.circuit.circuitId
 		});
 
 		this.setState({
 			subCircuits: subCircuits.body,
-			rootComponents: rootComponents.body,
 			categories: categories.body,
 			loaded: true
+		});
+	}
+
+	updateCurrentComponent(component) {
+		const clone = [...this.state.rootComponents];
+		clone[clone.findIndex(value => value.componentId === component.componentId)] = component;
+		this.setState({
+			rootComponents: clone
 		});
 	}
 
@@ -106,7 +117,8 @@ export default class EditorCanvas extends React.Component {
 		//}
 	}
 
-	onMouseUp() {
+	onMouseUp(e) {
+		let changedSelectedComponent = false;
 		if (this.props.mode === 'edit' && (this.state.drawComponentX > this.state.canvasWidth / 30 && this.state.drawComponentY > this.state.canvasHeight / 30)) {
 			const increaseX = this.state.currentImage.width / this.state.canvasWidth;
 			const increaseY = this.state.currentImage.height / this.state.canvasHeight;
@@ -129,12 +141,39 @@ export default class EditorCanvas extends React.Component {
 				method: 'POST',
 				url: 'http://localhost:8080/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
 				contentType: 'application/json',
-				data: JSON.stringify(component)
+				data: JSON.stringify(component),
+				success: data => {
+					const clone = [...this.state.rootComponents];
+					clone[this.state.rootComponents.length - 1] = data;
+					this.setState({
+						rootComponents: clone
+					});
+					this.props.onComponentSelected(data);
+				}
 			});
 
 			this.state.rootComponents.push(component);
+		} else if (this.props.mode === 'edit') {
+			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
+			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
+
+			for (const component of this.state.rootComponents) {
+				const x = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor;
+				const y = (this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor;
+				const w = component.bounds.width * widthRatio * this.state.scaleFactor;
+				const h = component.bounds.height * heightRatio * this.state.scaleFactor;
+
+				if (this.state.canvasLocalMouseX - 20 > x && this.state.canvasLocalMouseX - 20 < x + w && this.state.canvasLocalMouseY - 20 > y && this.state.canvasLocalMouseY - 20 < y + h) {
+					changedSelectedComponent = true;
+					this.setState({
+						selectedComponentId: component.componentId
+					});
+					this.props.onComponentSelected(component);
+					break;
+				}
+			}
 		}
-		this.setState({
+		const newState = {
 			isMouseDown: false,
 			currentMouseButton: -1,
 			startMouseX: -1,
@@ -143,7 +182,12 @@ export default class EditorCanvas extends React.Component {
 			canvasLocalMouseY: -1,
 			drawComponentX: -1,
 			drawComponentY: -1
-		});
+		};
+		if (!changedSelectedComponent) {
+			newState.selectedComponentId = -1;
+			this.props.onComponentSelected(null);
+		}
+		this.setState(newState);
 	}
 
 	clamp(x, low, high) {
@@ -265,7 +309,11 @@ export default class EditorCanvas extends React.Component {
 
 					for (const component of this.state.rootComponents) {
 						const rgb = this.hexToRgb(component.category.color);
-						ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.75)';
+						if (this.state.selectedComponentId === component.componentId) {
+							ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+						} else {
+							ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.75)';
+						}
 						ctx.fillRect(
 							(this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor,
 							(this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor,
@@ -273,11 +321,27 @@ export default class EditorCanvas extends React.Component {
 							component.bounds.height * heightRatio * this.state.scaleFactor);
 
 						ctx.fillStyle = '#000000';
-						ctx.font = (1.5 * this.state.scaleFactor) + 'rem Arial';
-						ctx.fillText(
-							component.name,
-							(this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor,
-							(this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor);
+
+						const lines = component.name.split(' ');
+						const longest = [...lines].sort((a, b) => b.length - a.length)[0];
+						const fontSize = component.bounds.width * widthRatio * this.state.scaleFactor / longest.length * 1.5;
+						ctx.font = fontSize + 'px Courier';
+						const fontHeight = ctx.measureText('M').width;
+
+						const totalHeight = lines.map(_ => fontHeight).reduce((total, current) => total + current); // width of capital M is very close to height
+						const middle = (this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor + (component.bounds.height * heightRatio * this.state.scaleFactor / 2);
+						const topMiddle = middle - (totalHeight / 2);
+
+						const xOffset = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor + (component.bounds.width * widthRatio * this.state.scaleFactor / 2);
+						let yOffset = topMiddle;
+						for (const line of lines) {
+							const width = ctx.measureText(line).width;
+							ctx.fillText(
+								line,
+								xOffset - (width / 2),
+								yOffset);
+							yOffset += fontSize;
+						}
 					}
 
 					if (this.state.drawComponentX !== -1 && this.state.drawComponentY !== -1) {

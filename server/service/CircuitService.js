@@ -24,10 +24,10 @@ function consolidate(categorySql, idField) {
 			currentCategory['TagContent'].push(category['TagContent']);
 		}
 	}
-	if(currentCategory !== null) {
+	if (currentCategory !== null) {
 		categories.push(currentCategory);
 	}
-	
+
 	return categories;
 }
 
@@ -54,10 +54,10 @@ function generateCategories(categorySql) {
 			currentCategory.tags.push(category['TagContent']);
 		}
 	}
-	if(currentCategory !== null) {
+	if (currentCategory !== null) {
 		categories.push(currentCategory);
 	}
-	
+
 	return categories;
 }
 
@@ -139,7 +139,7 @@ exports.createCircuit = function (body) {
 				}
 			}
 		}
-		if(!sqlSuccess) {
+		if (!sqlSuccess) {
 			await sql.rollback();
 		}
 		sql.end();
@@ -277,7 +277,7 @@ exports.createComponent = function (circuitId, body, side) {
 			}
 		}
 
-		if(!sqlSuccess) {
+		if (!sqlSuccess) {
 			await sql.rollback();
 		}
 		sql.end();
@@ -329,7 +329,7 @@ exports.createSubCircuit = function (circuitId, body, side) {
 			});
 		}
 
-		if(!sqlSuccess) {
+		if (!sqlSuccess) {
 			await sql.rollback();
 		}
 		sql.end();
@@ -402,7 +402,7 @@ exports.createSubCircuitComponent = function (circuitId, subCircuitId, body) {
 			}
 		}
 
-		if(!sqlSuccess) {
+		if (!sqlSuccess) {
 			await sql.rollback();
 		}
 		sql.end();
@@ -606,7 +606,7 @@ exports.getCircuitComponents = function (circuitId, side) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const circuits = await sql.query('SELECT COUNT(*) as Count FROM Circuits WHERE CircuitID=?', [circuitId]);
-		if(circuits[0]['Count'] === 0) {
+		if (circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			const sql = await util.connect();
@@ -669,7 +669,7 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 		const sql = await util.connect();
 
 		const circuits = await sql.query('SELECT COUNT(*) as Count FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
-		if(circuits[0]['Count'] === 0) {
+		if (circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			const query = `
@@ -721,11 +721,11 @@ exports.getSubCircuit = function (circuitId, subCircuitId) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const circuits = await sql.query('SELECT COUNT(*) as Count FROM Circuits WHERE CircuitID=?', [circuitId]);
-		if(circuits[0]['Count'] === 0) {
+		if (circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			const subCircuits = await sql.query('SELECT Image, ImageType, RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
-			if(subCircuits.length === 0) {
+			if (subCircuits.length === 0) {
 				resolve(writer.respondWithCode(404));
 			} else {
 				resolve(subCircuits.map(circuit => ({
@@ -757,11 +757,11 @@ exports.getSubCircuits = function (circuitId, side) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const circuits = await sql.query('SELECT COUNT(*) as Count FROM Circuits WHERE CircuitID=?', [circuitId]);
-		if(circuits[0]['Count'] === 0) {
+		if (circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			const subCircuits = await sql.query('SELECT RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
-			if(subCircuits.length === 0) {
+			if (subCircuits.length === 0) {
 				resolve([]);
 			} else {
 				resolve(subCircuits.map(circuit => ({
@@ -780,3 +780,77 @@ exports.getSubCircuits = function (circuitId, side) {
 	});
 }
 
+exports.updateCircuitComponent = function (circuitId, componentId, body) {
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+		const query = `
+			UPDATE Components
+			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
+			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
+			SET ?
+			WHERE CircuitID=? AND ComponentID=?
+		`;
+		const data = {};
+		if(body.documentationUrl !== undefined) {
+			data['DocumentationUrl'] = body.documentationUrl;
+		}
+		if(body.description !== undefined) {
+			data['Description'] = body.description;
+		}
+		if(body.name !== undefined) {
+			data['Components.Name'] = body.name;
+		}
+		if(body.categoryId !== undefined) {
+			data['CategoryID'] = body.categoryId;
+		}
+		const response = await sql.query(query, [data, circuitId, componentId]);
+		if(response.affectedRows === 0) {
+			resolve(writer.respondWithCode(404));
+		} else {
+			resolve(body);
+		}
+		sql.end();
+	});
+}
+
+
+/**
+ * Updates the data for a particular component of a particular subcircuit of a circuit
+ *
+ * circuitId String GUID of the circuit
+ * subCircuitId Integer ID of the subcircuit
+ * componentId Integer ID of the component
+ * body Component Data to update for the component (optional)
+ * returns Component
+ **/
+exports.updateSubCircuitComponent = function (circuitId, subCircuitId, componentId, body) {
+	return new Promise(function (resolve, reject) {
+		var examples = {};
+		examples['application/json'] = {
+			"documentationUrl": "http://example.com",
+			"componentId": 1,
+			"cirucitId": "505b791a-b324-4880-8b76-aeca2e054dca",
+			"bounds": {
+				"x": 500,
+				"width": 200,
+				"y": 1000,
+				"height": 200
+			},
+			"name": "My Component",
+			"subCircuitId": 1,
+			"description": "My Component is used do to x, y, and z",
+			"category": {
+				"color": "FF00FF",
+				"name": "Memory",
+				"categoryId": 1,
+				"circuitId": "505b791a-b324-4880-8b76-aeca2e054dca",
+				"tags": ["ddr", "gb"]
+			}
+		};
+		if (Object.keys(examples).length > 0) {
+			resolve(examples[Object.keys(examples)[0]]);
+		} else {
+			resolve();
+		}
+	});
+}

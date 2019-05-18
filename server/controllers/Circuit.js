@@ -194,3 +194,30 @@ module.exports.getSubCircuits = function getSubCircuits(req, res, next) {
 			utils.writeJson(res, response);
 		});
 };
+
+module.exports.updateCircuitComponent = function updateCircuitComponent(req, res, next) {
+	var circuitId = req.swagger.params['circuitId'].value;
+	var componentId = req.swagger.params['componentId'].value;
+	var body = req.swagger.params['body'].value;
+	Circuit.updateCircuitComponent(circuitId, componentId, body)
+		.then(function (response) {
+			utils.writeJson(res, response);
+		})
+		.catch(function (response) {
+			utils.writeJson(res, response);
+		});
+};
+
+module.exports.updateSubCircuitComponent = function updateSubCircuitComponent(req, res, next) {
+	var circuitId = req.swagger.params['circuitId'].value;
+	var subCircuitId = req.swagger.params['subCircuitId'].value;
+	var componentId = req.swagger.params['componentId'].value;
+	var body = req.swagger.params['body'].value;
+	Circuit.updateSubCircuitComponent(circuitId, subCircuitId, componentId, body)
+		.then(function (response) {
+			utils.writeJson(res, response);
+		})
+		.catch(function (response) {
+			utils.writeJson(res, response);
+		});
+};

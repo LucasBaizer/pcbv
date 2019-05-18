@@ -209,8 +209,8 @@ paths:
         required: true
         type: "string"
         enum:
-        - front
-        - back
+        - "front"
+        - "back"
       responses:
         200:
           description: "Circuit is valid"
@@ -257,6 +257,38 @@ paths:
           description: "Circuit does not exist"
       x-swagger-router-controller: "Circuit"
   /circuit/{circuitId}/component/{componentId}:
+    post:
+      tags:
+      - "circuit"
+      summary: "Updates the data for a particular component of a circuit"
+      operationId: "updateCircuitComponent"
+      parameters:
+      - name: "circuitId"
+        in: "path"
+        description: "GUID of the circuit"
+        required: true
+        type: "string"
+      - name: "componentId"
+        in: "path"
+        description: "ID of the component"
+        required: true
+        type: "integer"
+      - in: "body"
+        name: "body"
+        description: "Data to update for the component"
+        required: false
+        schema:
+          $ref: "#/definitions/Component"
+      responses:
+        200:
+          description: "Successfully updated component"
+          schema:
+            $ref: "#/definitions/Component"
+        400:
+          description: "Invalid request data"
+        404:
+          description: "Either circuit of component do not exist"
+      x-swagger-router-controller: "Circuit"
     delete:
       tags:
       - "circuit"
@@ -339,6 +371,44 @@ paths:
           description: "Either circuit or subcircuit do not exist"
       x-swagger-router-controller: "Circuit"
   /circuit/{circuitId}/subcircuit/{subCircuitId}/component/{componentId}:
+    post:
+      tags:
+      - "circuit"
+      summary: "Updates the data for a particular component of a particular subcircuit\
+        \ of a circuit"
+      operationId: "updateSubCircuitComponent"
+      parameters:
+      - name: "circuitId"
+        in: "path"
+        description: "GUID of the circuit"
+        required: true
+        type: "string"
+      - name: "subCircuitId"
+        in: "path"
+        description: "ID of the subcircuit"
+        required: true
+        type: "integer"
+      - name: "componentId"
+        in: "path"
+        description: "ID of the component"
+        required: true
+        type: "integer"
+      - in: "body"
+        name: "body"
+        description: "Data to update for the component"
+        required: false
+        schema:
+          $ref: "#/definitions/Component"
+      responses:
+        200:
+          description: "Successfully updated component"
+          schema:
+            $ref: "#/definitions/Component"
+        400:
+          description: "Invalid request data"
+        404:
+          description: "Either circuit, subcircuit, or component do not exist"
+      x-swagger-router-controller: "Circuit"
     delete:
       tags:
       - "circuit"
@@ -364,7 +434,7 @@ paths:
         200:
           description: "Successfully deleted component"
         404:
-          description: "Either circuit, subcircuit, or component does not exist"
+          description: "Either circuit, subcircuit, or component do not exist"
       x-swagger-router-controller: "Circuit"
   /circuit/{circuitId}/category:
     get:
@@ -458,32 +528,41 @@ definitions:
     properties:
       circuitId:
         type: "string"
+        example: "505b791a-b324-4880-8b76-aeca2e054dca"
       name:
         type: "string"
+        example: "My PCB"
       imageFront:
         type: "string"
+        example: "abcdef=="
       imageBack:
         type: "string"
+        example: "abcdef=="
       imageType:
         type: "string"
+        example: "png"
     example:
-      imageFront: "imageFront"
-      name: "name"
-      imageBack: "imageBack"
-      imageType: "imageType"
-      circuitId: "circuitId"
+      imageFront: "abcdef=="
+      name: "My PCB"
+      imageBack: "abcdef=="
+      imageType: "png"
+      circuitId: "505b791a-b324-4880-8b76-aeca2e054dca"
   SubCircuit:
     type: "object"
     properties:
       subCircuitId:
         type: "integer"
         format: "int32"
+        example: 1
       parentCircuitId:
         type: "string"
+        example: "505b791a-b324-4880-8b76-aeca2e054dca"
       image:
         type: "string"
+        example: "abcdef=="
       imageType:
         type: "string"
+        example: "png"
       bounds:
         $ref: "#/definitions/ComponentBounds"
       side:
@@ -492,98 +571,114 @@ definitions:
         - "front"
         - "back"
     example:
-      image: "image"
+      image: "abcdef=="
       side: "front"
-      parentCircuitId: "parentCircuitId"
+      parentCircuitId: "505b791a-b324-4880-8b76-aeca2e054dca"
       bounds:
-        x: 6
-        width: 5
-        y: 1
-        height: 5
-      subCircuitId: 0
-      imageType: "imageType"
+        x: 500
+        width: 200
+        y: 1000
+        height: 200
+      subCircuitId: 1
+      imageType: "png"
   Component:
     type: "object"
     properties:
       componentId:
         type: "integer"
         format: "int32"
+        example: 1
       subCircuitId:
         type: "integer"
         format: "int32"
+        example: 1
       cirucitId:
         type: "string"
+        example: "505b791a-b324-4880-8b76-aeca2e054dca"
       bounds:
         $ref: "#/definitions/ComponentBounds"
       name:
         type: "string"
+        example: "My Component"
       description:
         type: "string"
+        example: "My Component is used do to x, y, and z"
       documentationUrl:
         type: "string"
+        example: "http://example.com"
       category:
         $ref: "#/definitions/Category"
     example:
-      documentationUrl: "documentationUrl"
-      componentId: 0
-      cirucitId: "cirucitId"
+      documentationUrl: "http://example.com"
+      componentId: 1
+      cirucitId: "505b791a-b324-4880-8b76-aeca2e054dca"
       bounds:
-        x: 6
-        width: 5
-        y: 1
-        height: 5
-      name: "name"
-      subCircuitId: 6
-      description: "description"
+        x: 500
+        width: 200
+        y: 1000
+        height: 200
+      name: "My Component"
+      subCircuitId: 1
+      description: "My Component is used do to x, y, and z"
       category:
-        color: "color"
-        name: "name"
+        color: "FF00FF"
+        name: "Memory"
         categoryId: 1
-        circuitId: 5
+        circuitId: "505b791a-b324-4880-8b76-aeca2e054dca"
         tags:
-        - "tags"
-        - "tags"
+        - "ddr"
+        - "gb"
   ComponentBounds:
     type: "object"
     properties:
       x:
         type: "integer"
+        example: 500
       y:
         type: "integer"
+        example: 1000
       width:
         type: "integer"
+        example: 200
       height:
         type: "integer"
+        example: 200
     example:
-      x: 6
-      width: 5
-      y: 1
-      height: 5
+      x: 500
+      width: 200
+      y: 1000
+      height: 200
   Category:
     type: "object"
     properties:
       categoryId:
         type: "integer"
         format: "int32"
+        example: 1
       circuitId:
-        type: "integer"
-        format: "int32"
+        type: "string"
+        example: "505b791a-b324-4880-8b76-aeca2e054dca"
       name:
         type: "string"
+        example: "Memory"
       color:
         type: "string"
+        example: "FF00FF"
       tags:
         type: "array"
+        example:
+        - "ddr"
+        - "gb"
         items:
           type: "string"
     example:
-      color: "color"
-      name: "name"
+      color: "FF00FF"
+      name: "Memory"
       categoryId: 1
-      circuitId: 5
+      circuitId: "505b791a-b324-4880-8b76-aeca2e054dca"
       tags:
-      - "tags"
-      - "tags"
+      - "ddr"
+      - "gb"
   PcbvPhrase:
     type: "object"
     properties:
