@@ -14,6 +14,7 @@ export default class EditorCanvas extends React.Component {
 			categories: null,
 			loaded: false,
 			isMouseDown: false,
+			currentMouseButton: -1,
 			startMouseX: -1,
 			startMouseY: -1,
 			canvasLocalMouseX: -1,
@@ -94,6 +95,7 @@ export default class EditorCanvas extends React.Component {
 		const rect = $('#editor-canvas')[0].getBoundingClientRect();
 		this.setState({
 			isMouseDown: true,
+			currentMouseButton: e.button,
 			startMouseX: e.pageX - rect.left - this.state.viewerOffsetX,
 			startMouseY: e.pageY - rect.top - this.state.viewerOffsetY,
 			canvasLocalMouseX: e.pageX - rect.left,
@@ -112,8 +114,8 @@ export default class EditorCanvas extends React.Component {
 			const component = {
 				documentationUrl: '',
 				bounds: {
-					x: (this.state.canvasLocalMouseX - this.state.viewerOffsetX) * increaseX / this.state.scaleFactor,
-					y: ((this.state.canvasLocalMouseY - 20) * increaseY - this.state.viewerOffsetY) / this.state.scaleFactor,
+					x: (this.state.canvasLocalMouseX - 20) * increaseX / this.state.scaleFactor - this.state.viewerOffsetX,
+					y: (this.state.canvasLocalMouseY - 20) * increaseY / this.state.scaleFactor - this.state.viewerOffsetY,
 					width: this.state.drawComponentX * increaseX / this.state.scaleFactor,
 					height: this.state.drawComponentY * increaseY / this.state.scaleFactor
 				},
@@ -134,6 +136,7 @@ export default class EditorCanvas extends React.Component {
 		}
 		this.setState({
 			isMouseDown: false,
+			currentMouseButton: -1,
 			startMouseX: -1,
 			startMouseY: -1,
 			canvasLocalMouseX: -1,
@@ -151,13 +154,13 @@ export default class EditorCanvas extends React.Component {
 		if (this.state.isMouseDown) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 
-			if (this.props.mode === 'view') {
+			if ((this.props.mode === 'view' && this.state.currentMouseButton === 0) || (this.props.mode === 'edit' && this.state.currentMouseButton === 1)) {
 				const offsets = this.getRescaleOffsets((e.pageX - rect.left) - this.state.startMouseX, (e.pageY - rect.top) - this.state.startMouseY, this.state.scaleFactor);
 				this.setState({
 					viewerOffsetX: offsets[0],
 					viewerOffsetY: offsets[1]
 				});
-			} else if (this.props.mode === 'edit') {
+			} else if (this.props.mode === 'edit' && this.state.currentMouseButton === 0) {
 				this.setState({
 					drawComponentX: (e.pageX - rect.left) - this.state.canvasLocalMouseX,
 					drawComponentY: (e.pageY - rect.top) - this.state.canvasLocalMouseY
