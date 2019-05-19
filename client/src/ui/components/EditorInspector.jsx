@@ -45,11 +45,13 @@ export default class EditorInspector extends React.Component {
 					circuit={this.props.circuit}
 					categories={this.state.categories}
 					onChangeCategories={this.props.onChangeCategories}
-					onUpdateCategories={this.props.onUpdateCategories} />
+					onUpdateCategories={this.props.onUpdateCategories}
+					onChangeSearchText={this.props.onChangeSearchText} />
 			);
 		} else {
 			return (
 				<ComponentEditorInspector
+					mode={this.props.mode}
 					circuit={this.props.circuit}
 					component={this.props.component}
 					categories={this.state.categories}

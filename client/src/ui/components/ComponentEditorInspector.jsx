@@ -19,6 +19,7 @@ export default class ComponentEditorInspector extends React.Component {
 		this.onChangeDescription = this.onChangeDescription.bind(this);
 		this.onChangeDocumentationUrl = this.onChangeDocumentationUrl.bind(this);
 		this.onClickDelete = this.onClickDelete.bind(this);
+		this.onClickMove = this.onClickMove.bind(this);
 	}
 
 	componentDidMount() {
@@ -28,7 +29,7 @@ export default class ComponentEditorInspector extends React.Component {
 	}
 
 	componentDidUpdate(prevProps) {
-		if (prevProps.component !== this.props.component) {
+		if (prevProps.component.componentId !== this.props.component.componentId) {
 			if (this.state.timeout) {
 				this.updateComponent(this.state.component);
 				clearTimeout(this.state.timeout);
@@ -47,8 +48,21 @@ export default class ComponentEditorInspector extends React.Component {
 	onChangeComponentName(e) {
 		const newComponent = {
 			...this.state.component,
-			name: e.target.value || 'New Component'
+			name: e.target.value
 		};
+
+		if(this.state.component.category.name === 'None') {
+			categoryLoop:
+			for(const category of this.props.categories) {
+				for(const tag of category.titleTags) {
+					if(new RegExp(tag).test(e.target.value)) {
+						newComponent.categoryId = category.categoryId;
+						newComponent.category = category;
+						break categoryLoop;
+					}
+				}
+			}
+		}
 
 		if (this.state.timeout) {
 			clearTimeout(this.state.timeout);
@@ -68,6 +82,19 @@ export default class ComponentEditorInspector extends React.Component {
 			...this.state.component,
 			description: e.target.value
 		};
+
+		if(this.state.component.category.name === 'None') {
+			categoryLoop:
+			for(const category of this.props.categories) {
+				for(const tag of category.descriptionTags) {
+					if(new RegExp(tag).test(e.target.value)) {
+						newComponent.categoryId = category.categoryId;
+						newComponent.category = category;
+						break categoryLoop;
+					}
+				}
+			}
+		}
 
 		if (this.state.timeout) {
 			clearTimeout(this.state.timeout);
@@ -123,6 +150,28 @@ export default class ComponentEditorInspector extends React.Component {
 		});
 
 		this.props.onComponentUpdate(this.state.component, 'delete');
+	}
+
+	onClickMove() {
+		this.props.onComponentUpdate(this.state.component, 'move').then(bounds => {
+			$.ajax({
+				method: 'POST',
+				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + this.state.component.componentId,
+				contentType: 'application/json',
+				data: JSON.stringify({
+					bounds: bounds
+				})
+			});
+
+			const newComponent = {
+				...this.state.component,
+				bounds: bounds
+			};
+			this.setState({
+				component: newComponent
+			});
+			this.props.onComponentUpdate(newComponent);
+		});
 	}
 
 	updateComponent(component) {
@@ -182,6 +231,7 @@ export default class ComponentEditorInspector extends React.Component {
 				</Row>
 				<Row>
 					<Col md={{ span: 10, offset: 1 }}>
+						<Button onClick={this.onClickMove} disabled={this.props.mode !== 'edit'}>Redraw</Button>
 						<Button variant="danger" onClick={this.onClickDelete} className="inspector-delete-button">Delete</Button>
 					</Col>
 				</Row>

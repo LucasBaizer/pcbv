@@ -64,6 +64,7 @@ CREATE TABLE CategoryTags (
 	CategoryTagID INT NOT NULL AUTO_INCREMENT,
 	CategoryID INT,
 	TagContent VARCHAR(255),
+	TagType INT,
 
 	FOREIGN KEY (CategoryID)
 		REFERENCES Categories(CategoryID)

@@ -33,7 +33,10 @@ export default class EditorCanvas extends React.Component {
 			drawComponentY: 0,
 			temporaryComponents: [],
 			currentSubCircuit: -1,
-			selectedComponentId: -1
+			selectedComponentId: -1,
+			searchText: '',
+			redrawCallback: null,
+			redrawComponent: -1
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
@@ -116,12 +119,25 @@ export default class EditorCanvas extends React.Component {
 				rootComponents: clone,
 				selectedComponentId: -1
 			});
+		} else if(type === 'move') {
+			return new Promise((resolve, reject) => {
+				this.setState({
+					redrawCallback: resolve,
+					redrawComponent: component.componentId
+				});
+			});
 		} else {
 			clone[index] = component;
 			this.setState({
 				rootComponents: clone
 			});
 		}
+	}
+
+	updateSearchText(text) {
+		this.setState({
+			searchText: text
+		});
 	}
 
 	updateSelectedCategories(categories) {
@@ -146,17 +162,32 @@ export default class EditorCanvas extends React.Component {
 
 	onMouseUp(e) {
 		let changedSelectedComponent = false;
-		if (this.props.mode === 'edit' && (this.state.drawComponentX > this.state.canvasWidth / 30 && this.state.drawComponentY > this.state.canvasHeight / 30)) {
+		if (this.props.mode === 'edit' && (Math.abs(this.state.drawComponentX) > this.state.canvasWidth / 30 && Math.abs(this.state.drawComponentY) > this.state.canvasHeight / 30)) {
 			const increaseX = this.state.currentImage.width / this.state.canvasWidth;
 			const increaseY = this.state.currentImage.height / this.state.canvasHeight;
 			const noneCategory = this.state.categories.filter(x => x.name === 'None')[0];
+
+			let x = this.state.canvasLocalMouseX - 20;
+			let y = this.state.canvasLocalMouseY - 20;
+			let w = this.state.drawComponentX;
+			let h = this.state.drawComponentY;
+
+			if(w < 0) {
+				x += w;
+				w = Math.abs(w);
+			}
+			if(h < 0) {
+				y += h;
+				h = Math.abs(h);
+			}
+
 			const component = {
 				documentationUrl: '',
 				bounds: {
-					x: (this.state.canvasLocalMouseX - 20) * increaseX / this.state.scaleFactor - this.state.viewerOffsetX,
-					y: (this.state.canvasLocalMouseY - 20) * increaseY / this.state.scaleFactor - this.state.viewerOffsetY,
-					width: this.state.drawComponentX * increaseX / this.state.scaleFactor,
-					height: this.state.drawComponentY * increaseY / this.state.scaleFactor
+					x: x * increaseX / this.state.scaleFactor - this.state.viewerOffsetX,
+					y: y * increaseY / this.state.scaleFactor - this.state.viewerOffsetY,
+					width: w * increaseX / this.state.scaleFactor,
+					height: h * increaseY / this.state.scaleFactor
 				},
 				name: '',
 				description: '',
@@ -164,23 +195,27 @@ export default class EditorCanvas extends React.Component {
 				category: noneCategory
 			};
 
-			$.ajax({
-				method: 'POST',
-				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
-				contentType: 'application/json',
-				data: JSON.stringify(component),
-				success: data => {
-					const clone = [...this.state.rootComponents];
-					clone[this.state.rootComponents.length - 1] = data;
-					this.setState({
-						rootComponents: clone,
-						selectedComponentId: data.componentId
-					});
-					this.props.onComponentSelected(data);
-				}
-			});
-
-			this.state.rootComponents.push(component);
+			if(this.state.redrawCallback !== null) {
+				this.state.redrawCallback(component.bounds);
+			} else {
+				$.ajax({
+					method: 'POST',
+					url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
+					contentType: 'application/json',
+					data: JSON.stringify(component),
+					success: data => {
+						const clone = [...this.state.rootComponents];
+						clone[this.state.rootComponents.length - 1] = data;
+						this.setState({
+							rootComponents: clone,
+							selectedComponentId: data.componentId
+						});
+						this.props.onComponentSelected(data);
+					}
+				});
+	
+				this.state.rootComponents.push(component);
+			}
 		} else if (!this.state.mouseMoved) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
@@ -207,7 +242,7 @@ export default class EditorCanvas extends React.Component {
 				}
 			}
 		}
-		const newState = {
+		let newState = {
 			isMouseDown: false,
 			mouseMoved: false,
 			currentMouseButton: -1,
@@ -218,7 +253,14 @@ export default class EditorCanvas extends React.Component {
 			drawComponentX: -1,
 			drawComponentY: -1
 		};
-		if (!changedSelectedComponent) {
+		if(this.props.mode === 'edit' && e.button === 0) {
+			newState = {
+				...newState,
+				redrawCallback: null,
+				redrawComponent: -1
+			};
+		}
+		if (!changedSelectedComponent && !this.state.redrawCallback) {
 			newState.selectedComponentId = -1;
 			this.props.onComponentSelected(null);
 		}
@@ -350,9 +392,18 @@ export default class EditorCanvas extends React.Component {
 
 					ctx.strokeStyle = '#000000';
 
+					const searchTextRegex = new RegExp(this.state.searchText, 'i');
 					for (const component of this.state.rootComponents) {
 						if (this.state.selectedCategories.indexOf(component.category.categoryId) === -1) {
 							continue;
+						}
+						if(this.state.redrawComponent === component.componentId) {
+							continue;
+						}
+						if(this.state.searchText !== '') {
+							if(!searchTextRegex.test(component.name) && !searchTextRegex.test(component.description)) {
+								continue;
+							}
 						}
 
 						const rgb = this.hexToRgb(component.category.color);
@@ -371,13 +422,16 @@ export default class EditorCanvas extends React.Component {
 
 						const lines = (component.name || 'New Component').split(' ');
 						const longest = [...lines].sort((a, b) => b.length - a.length)[0];
-						const fontSize = component.bounds.width * widthRatio * this.state.scaleFactor / longest.length * 1.5;
+						const fontSize = Math.min(component.bounds.width * widthRatio * this.state.scaleFactor / longest.length * 1.5, component.bounds.height * heightRatio * this.state.scaleFactor / lines.length);
 						ctx.font = fontSize + 'px Courier';
-						const fontHeight = ctx.measureText('M').width;
+						ctx.textBaseline = 'middle';
+						console.log('Font size: ' + fontSize);
+						const fontHeight = ctx.measureText('O').width; // width of capital M is very close to height
 
-						const totalHeight = lines.map(_ => fontHeight).reduce((total, current) => total + current); // width of capital M is very close to height
+						const totalHeight = lines.map(_ => fontHeight).reduce((total, current) => total + current);
+						console.log('Total height: ' + totalHeight);
 						const middle = (this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor + (component.bounds.height * heightRatio * this.state.scaleFactor / 2);
-						const topMiddle = middle - (totalHeight / 2);
+						const topMiddle = (lines.length === 1) ? middle : (middle - lines.length * fontHeight / 2);
 
 						const xOffset = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor + (component.bounds.width * widthRatio * this.state.scaleFactor / 2);
 						let yOffset = topMiddle;

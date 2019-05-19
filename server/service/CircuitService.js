@@ -15,13 +15,22 @@ function consolidate(categorySql, idField) {
 			}
 			currentCategory = {
 				...category,
-				TagContent: []
+				TitleTagContent: [],
+				DescriptionTagContent: []
 			};
 			if (category['TagContent']) {
-				currentCategory['TagContent'].push(category['TagContent']);
+				if(category['TagType'] === 0) {
+					currentCategory['TitleTagContent'].push(category['TagContent']);
+				} else if(category['TagType'] === 1) {
+					currentCategory['DescriptionTagContent'].push(category['TagContent']);
+				}
 			}
 		} else {
-			currentCategory['TagContent'].push(category['TagContent']);
+			if(category['TagType'] === 0) {
+				currentCategory['TitleTagContent'].push(category['TagContent']);
+			} else if(category['TagType'] === 1) {
+				currentCategory['DescriptionTagContent'].push(category['TagContent']);
+			}
 		}
 	}
 	if (currentCategory !== null) {
@@ -45,13 +54,22 @@ function generateCategories(categorySql) {
 				name: category['Name'],
 				categoryId: category['CategoryID'],
 				circuitId: category['CircuitID'],
-				tags: []
+				titleTags: [],
+				descriptionTags: []
 			};
 			if (category['TagContent']) {
-				currentCategory.tags.push(category['TagContent']);
+				if(category['TagType'] === 0) {
+					currentCategory.titleTags.push(category['TagContent']);
+				} else if(category['TagType'] === 1) {
+					currentCategory.descriptionTags.push(category['TagContent']);
+				}
 			}
 		} else {
-			currentCategory.tags.push(category['TagContent']);
+			if(category['TagType'] === 0) {
+				currentCategory.titleTags.push(category['TagContent']);
+			} else if(category['TagType'] === 1) {
+				currentCategory.descriptionTags.push(category['TagContent']);
+			}
 		}
 	}
 	if (currentCategory !== null) {
@@ -122,9 +140,20 @@ exports.createCircuit = function (body) {
 						[id, 'Resistor', '00FF00C0'],
 						[id, 'Capacitor', '0000FFC0'],
 						[id, 'Power Conversion', 'FFFF00C0'],
-						[id, 'Communication', '00FFFFC0']
+						[id, 'Communication', '00FFFFC0'],
+						[id, 'Other IC', 'EEAAEEC0']
 					];
-					await sql.query('INSERT INTO Categories (CircuitID, Name, RgbColor) VALUES ?', [defaultCategories]);
+					const response = await sql.query('INSERT INTO Categories (CircuitID, Name, RgbColor) VALUES ?', [defaultCategories]);
+
+					const firstId = response.insertId;
+					const defaultTags = [
+						[firstId + 4, '^R', 0], // resistor
+						[firstId + 5, '^C', 0], // capacitor
+						[firstId + 6, '^[IL]', 0], // power conversion
+						[firstId + 8, '^[DUQ]', 0] // other IC
+					];
+					await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [defaultTags]);
+
 					await sql.commit();
 
 					sqlSuccess = true;
@@ -179,9 +208,16 @@ exports.createCircuitCategory = function (circuitId, body) {
 			});
 			if (attempt) {
 				const id = attempt.insertId;
-				if (body.tags && body.tags.length > 0) {
-					const insertTags = body.tags.map(tag => [id, tag]);
-					const attemptTags = await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent) VALUES ?', [insertTags]).catch(() => {
+				if ((body.titleTags && body.titleTags.length > 0) || (body.descriptionTags && body.descriptionTags.length > 0)) {
+					// const insertTags = body.titleTags.map(tag => [id, tag]);
+					const insertTags = [];
+					if(body.titleTags) {
+						insertTags = insertTags.concat(body.titleTags.map(tag => [id, tag, 0]));
+					}
+					if(body.descriptionTags) {
+						insertTags = insertTags.concat(body.descriptionTags.map(tag => [id, tag, 0]));
+					}
+					const attemptTags = await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [insertTags]).catch(() => {
 						resolve(writer.respondWithCode(400, {
 							error: 'Unknown error caused by invalid tags in payload'
 						}));
@@ -192,7 +228,8 @@ exports.createCircuitCategory = function (circuitId, body) {
 							name: body.name,
 							categoryId: id,
 							circuitId: circuitId,
-							tags: body.tags
+							titleTags: body.titleTags || [],
+							descriptionTags: body.descriptionTags || []
 						});
 					}
 				} else {
@@ -201,7 +238,8 @@ exports.createCircuitCategory = function (circuitId, body) {
 						name: body.name,
 						categoryId: id,
 						circuitId: circuitId,
-						tags: []
+						titleTags: [],
+						descriptionTags: []
 					});
 				}
 			}
@@ -251,7 +289,7 @@ exports.createComponent = function (circuitId, body, side) {
 			});
 			if (success) {
 				const query = `
-					SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+					SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 					FROM Circuits
 					INNER JOIN Categories ON Circuits.CircuitID=Categories.CircuitID
 					LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
@@ -376,7 +414,7 @@ exports.createSubCircuitComponent = function (circuitId, subCircuitId, body) {
 			});
 			if (success) {
 				const query = `
-					SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+					SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 					FROM Circuits
 					INNER JOIN Categories ON Circuits.CircuitID=Categories.CircuitID
 					LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
@@ -577,7 +615,7 @@ exports.getCircuitCategories = function (circuitId) {
 		const sql = await util.connect();
 
 		const query = `
-			SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+			SELECT Circuits.CircuitID, Categories.Name, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 			FROM Circuits
 			INNER JOIN Categories ON Circuits.CircuitID=Categories.CircuitID
 			LEFT JOIN CategoryTags ON Categories.CategoryID=CategoryTags.CategoryID
@@ -612,7 +650,7 @@ exports.getCircuitComponents = function (circuitId, side) {
 		} else {
 			const sql = await util.connect();
 			const query = `
-				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 				FROM Components
 				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
@@ -647,7 +685,8 @@ exports.getCircuitComponents = function (circuitId, side) {
 							name: item['CategoryName'],
 							categoryId: item['CategoryID'],
 							circuitId: item['CircuitID'],
-							tags: item['TagContent']
+							titleTags: item['TitleTagContent'],
+							descriptionTags: item['DescriptionTagContent']
 						}
 					};
 				}));
@@ -674,7 +713,7 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			const query = `
-				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent
+				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 				FROM Components
 				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
@@ -708,7 +747,8 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 							name: item['CategoryName'],
 							categoryId: item['CategoryID'],
 							circuitId: item['CircuitID'],
-							tags: item['TagContent']
+							titleTags: item['TitleTagContent'],
+							descriptionTags: item['DescriptionTagContent']
 						}
 					};
 				}));
@@ -805,9 +845,14 @@ exports.updateCircuitCategory = function (circuitId, categoryId, body) {
 			data['RgbColor'] = body.color;
 		}
 		const response = await sql.query(query, [data, circuitId, categoryId]);
-		if (response.affectedRows === 0) {
+		if (response.affectedRows === 0 && !body.titleTags && !body.descriptionTags) {
 			resolve(writer.respondWithCode(404));
 		} else {
+			if(body.titleTags !== undefined && body.titleTags.length > 0) {
+				await sql.query('DELETE FROM CategoryTags WHERE CategoryID=? AND TagType=0', categoryId);
+				// TODO await sql.query('INSERT INTO CategoryTags VALUES ?')
+			}
+			
 			resolve(body);
 		}
 		sql.end();
@@ -838,6 +883,12 @@ exports.updateCircuitComponent = function (circuitId, componentId, body) {
 		}
 		if (body.categoryId !== undefined) {
 			data['CategoryID'] = body.categoryId;
+		}
+		if(body.bounds !== undefined) {
+			data['Components.RectX'] = body.bounds.x;
+			data['Components.RectY'] = body.bounds.y;
+			data['Components.RectWidth'] = body.bounds.width;
+			data['Components.RectHeight'] = body.bounds.height;
 		}
 		const response = await sql.query(query, [data, circuitId, componentId]);
 		if (response.affectedRows === 0) {
@@ -883,6 +934,12 @@ exports.updateSubCircuitComponent = function (circuitId, subCircuitId, component
 		}
 		if (body.categoryId !== undefined) {
 			data['CategoryID'] = body.categoryId;
+		}
+		if(body.bounds !== undefined) {
+			data['Components.RectX'] = body.bounds.x;
+			data['Components.RectY'] = body.bounds.y;
+			data['Components.RectWidth'] = body.bounds.width;
+			data['Components.RectHeight'] = body.bounds.height;
 		}
 		const response = await sql.query(query, [data, circuitId, componentId, subCircuitId]);
 		if (response.affectedRows === 0) {

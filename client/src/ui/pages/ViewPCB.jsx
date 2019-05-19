@@ -35,6 +35,7 @@ export default class ViewPCB extends React.Component {
 		this.onComponentUpdate = this.onComponentUpdate.bind(this);
 		this.onChangeCategories = this.onChangeCategories.bind(this);
 		this.onUpdateCategories = this.onUpdateCategories.bind(this);
+		this.onChangeSearchText = this.onChangeSearchText.bind(this);
 	}
 
 	onEditorLoaded() {
@@ -73,13 +74,13 @@ export default class ViewPCB extends React.Component {
 			this.setState({
 				selectedComponent: null
 			});
-		} else {
+		} else if(type !== 'move') {
 			this.setState({
 				selectedComponent: component
 			});
 		}
 
-		this.editorCanvas.updateCurrentComponent(component, type);
+		return this.editorCanvas.updateCurrentComponent(component, type);
 	}
 
 	onChangeCategories(categories) {
@@ -89,6 +90,10 @@ export default class ViewPCB extends React.Component {
 	onUpdateCategories(categories) {
 		this.editorCanvas.updateCategories(categories);
 		this.editorInspector.updateCategories(categories);
+	}
+
+	onChangeSearchText(text) {
+		this.editorCanvas.updateSearchText(text);
 	}
 
 	render() {
@@ -127,11 +132,13 @@ export default class ViewPCB extends React.Component {
 						<Col md={{ span: 3 }} className="pcb-right-pane">
 							<EditorInspector
 								ref={editorInspector => this.editorInspector = editorInspector}
+								mode={this.state.mode}
 								circuit={this.state.circuit}
 								component={this.state.selectedComponent}
 								onComponentUpdate={this.onComponentUpdate}
 								onChangeCategories={this.onChangeCategories}
-								onUpdateCategories={this.onUpdateCategories} />
+								onUpdateCategories={this.onUpdateCategories}
+								onChangeSearchText={this.onChangeSearchText} />
 						</Col>
 					</Row>
 				</Container>

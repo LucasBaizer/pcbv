@@ -13,7 +13,8 @@ export default class CircuitEditorInspector extends React.Component {
 		this.state = {
 			selectedCategories: this.props.categories.map(category => category.categoryId),
 			editingCategory: -1,
-			createCategoryName: ''
+			createCategoryName: '',
+			searchText: ''
 		};
 
 		this.onClickCategory = this.onClickCategory.bind(this);
@@ -23,6 +24,7 @@ export default class CircuitEditorInspector extends React.Component {
 		this.onHideCreateCategory = this.onHideCreateCategory.bind(this);
 		this.onChangeCategoryName = this.onChangeCategoryName.bind(this);
 		this.createCategory = this.createCategory.bind(this);
+		this.onChangeSearchText = this.onChangeSearchText.bind(this);
 	}
 
 	onClickCategory(e) {
@@ -124,6 +126,14 @@ export default class CircuitEditorInspector extends React.Component {
 		});
 	}
 
+	onChangeSearchText(e) {
+		this.setState({
+			searchText: e.target.value
+		});
+
+		this.props.onChangeSearchText(e.target.value);
+	}
+
 	createCategory() {
 		$.ajax({
 			method: 'POST',
@@ -169,7 +179,7 @@ export default class CircuitEditorInspector extends React.Component {
 				<div className="inspector-menu">
 					<Row className="inspector-header">
 						<Col md={{ span: 12 }}>
-							<h3>{this.props.circuit.name} Settings</h3>
+							<h3>{this.props.circuit.name}</h3>
 						</Col>
 					</Row>
 					<Row>
@@ -178,6 +188,10 @@ export default class CircuitEditorInspector extends React.Component {
 								<Form.Group>
 									<Form.Label>Circuit Name</Form.Label>
 									<Form.Control type="text" value={this.props.circuit.name} disabled={true} />
+								</Form.Group>
+								<Form.Group>
+									<Form.Label>Filter Components</Form.Label>
+									<Form.Control type="text" value={this.state.searchText} onChange={this.onChangeSearchText} placeholder="search names or descriptions..." />
 								</Form.Group>
 								<Form.Group>
 									<Form.Label>
@@ -196,7 +210,7 @@ export default class CircuitEditorInspector extends React.Component {
 													backgroundColor: '#' + category.color.substring(0, 6)
 												}} />
 												<span className="inspector-category-name">{category.name}</span>
-												<FontAwesomeIcon icon={faTrashAlt} className="inspector-trash-icon" />
+												{category.name === 'None' ? (null) : (<FontAwesomeIcon icon={faTrashAlt} className="inspector-trash-icon" />)}
 											</ListGroup.Item>
 										))}
 									</ListGroup>
