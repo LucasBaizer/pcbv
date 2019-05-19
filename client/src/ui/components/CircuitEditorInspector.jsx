@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Form, ListGroup } from 'react-bootstrap';
+import { Row, Col, Form, ListGroup, Modal, Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import InspectorColorPicker from './InspectorColorPicker';
@@ -12,12 +12,17 @@ export default class CircuitEditorInspector extends React.Component {
 
 		this.state = {
 			selectedCategories: this.props.categories.map(category => category.categoryId),
-			editingCategory: -1
+			editingCategory: -1,
+			createCategoryName: ''
 		};
 
 		this.onClickCategory = this.onClickCategory.bind(this);
 		this.onChangeColor = this.onChangeColor.bind(this);
 		this.onChangeColorComplete = this.onChangeColorComplete.bind(this);
+		this.onClickAddCategory = this.onClickAddCategory.bind(this);
+		this.onHideCreateCategory = this.onHideCreateCategory.bind(this);
+		this.onChangeCategoryName = this.onChangeCategoryName.bind(this);
+		this.createCategory = this.createCategory.bind(this);
 	}
 
 	onClickCategory(e) {
@@ -84,7 +89,7 @@ export default class CircuitEditorInspector extends React.Component {
 	onChangeColorComplete(e) {
 		$.ajax({
 			method: 'POST',
-			url: 'http://localhost:8080/api/v1/circuit/' + this.props.circuit.circuitId + '/category/' + this.state.editingCategory,
+			url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/category/' + this.state.editingCategory,
 			contentType: 'application/json',
 			data: JSON.stringify({
 				color: e.hex.substring(1).toUpperCase()
@@ -92,48 +97,111 @@ export default class CircuitEditorInspector extends React.Component {
 		});
 	}
 
+	onClickAddCategory() {
+		this.setState({
+			showCreateCategory: true
+		});
+	}
+
+	onChangeCategoryName(e) {
+		this.setState({
+			createCategoryName: e.target.value
+		});
+	}
+
+	onHideCreateCategory() {
+		this.setState({
+			createCategoryName: '',
+			showCreateCategory: false
+		});
+	}
+
+	createCategory() {
+		$.ajax({
+			method: 'POST',
+			url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/category',
+			contentType: 'application/json',
+			data: JSON.stringify({
+				name: this.state.createCategoryName,
+				color: Math.floor(Math.random() * 16777215).toString(16).toUpperCase()
+			}),
+			success: data => {
+				const original = [...this.props.categories];
+				original.push(data);
+				this.props.onUpdateCategories(original);
+
+				const clone = [...this.state.selectedCategories];
+				clone.push(data.categoryId);
+				this.setState({
+					selectedCategories: clone
+				});
+
+				this.props.onChangeCategories(clone);
+			}
+		});
+
+		this.onHideCreateCategory();
+	}
+
 	render() {
 		return (
-			<div className="inspector-menu">
-				<Row className="inspector-header">
-					<Col md={{ span: 12 }}>
-						<h3>{this.props.circuit.name} Settings</h3>
-					</Col>
-				</Row>
-				<Row>
-					<Col md={{ span: 10, offset: 1 }}>
-						<Form>
-							<Form.Group>
-								<Form.Label>Circuit Name</Form.Label>
-								<Form.Control type="text" value={this.props.circuit.name} disabled={true} />
-							</Form.Group>
-							<Form.Group>
-								<Form.Label>Filter Categories <FontAwesomeIcon icon={faPlus} color="green" className="inspector-clickable-icon" /></Form.Label>
-								<ListGroup>
-									{this.props.categories.map(category => (
-										<ListGroup.Item
-											key={category.categoryId}
-											className="inspector-category"
-											active={this.state.selectedCategories.indexOf(category.categoryId) !== -1}
-											data-category={category.categoryId.toString()}
-											onClick={this.onClickCategory}>
-											<span className="inspector-color-cube" style={{
-												backgroundColor: '#' + category.color
-											}} />
-											<span className="inspector-category-name">{category.name}</span>
-											<FontAwesomeIcon icon={faTrashAlt} className="inspector-trash-icon" />
-										</ListGroup.Item>
-									))}
-								</ListGroup>
-							</Form.Group>
-						</Form>
-					</Col>
-				</Row>
-				<InspectorColorPicker
-					ref={colorPicker => this.colorPicker = colorPicker}
-					onChange={this.onChangeColor}
-					onChangeComplete={this.onChangeColorComplete} />
-			</div>
+			<>
+				<Modal show={this.state.showCreateCategory} onHide={this.onHideCreateCategory}>
+					<Modal.Header>
+						<Modal.Title>Create Category</Modal.Title>
+					</Modal.Header>
+					<Modal.Body>
+						<p>Please enter the name of the new category.</p>
+						<Form.Control type="text" value={this.state.createCategoryName} onChange={this.onChangeCategoryName} placeholder="category name" />
+					</Modal.Body>
+					<Modal.Footer>
+						<Button variant="success" onClick={this.createCategory}>Create</Button>
+					</Modal.Footer>
+				</Modal>
+				<div className="inspector-menu">
+					<Row className="inspector-header">
+						<Col md={{ span: 12 }}>
+							<h3>{this.props.circuit.name} Settings</h3>
+						</Col>
+					</Row>
+					<Row>
+						<Col md={{ span: 10, offset: 1 }}>
+							<Form>
+								<Form.Group>
+									<Form.Label>Circuit Name</Form.Label>
+									<Form.Control type="text" value={this.props.circuit.name} disabled={true} />
+								</Form.Group>
+								<Form.Group>
+									<Form.Label>
+										Filter Categories&nbsp;
+									<FontAwesomeIcon icon={faPlus} color="green" className="inspector-clickable-icon" onClick={this.onClickAddCategory} />
+									</Form.Label>
+									<ListGroup>
+										{this.props.categories.map(category => (
+											<ListGroup.Item
+												key={category.categoryId}
+												className="inspector-category"
+												active={this.state.selectedCategories.indexOf(category.categoryId) !== -1}
+												data-category={category.categoryId.toString()}
+												onClick={this.onClickCategory}>
+												<span className="inspector-color-cube" style={{
+													backgroundColor: '#' + category.color
+												}} />
+												<span className="inspector-category-name">{category.name}</span>
+												<FontAwesomeIcon icon={faTrashAlt} className="inspector-trash-icon" />
+											</ListGroup.Item>
+										))}
+									</ListGroup>
+								</Form.Group>
+							</Form>
+						</Col>
+					</Row>
+					<InspectorColorPicker
+						ref={colorPicker => this.colorPicker = colorPicker}
+						onChange={this.onChangeColor}
+						onChangeComplete={this.onChangeColorComplete} />
+				</div>
+			</>
 		);
 	}
 };

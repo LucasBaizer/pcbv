@@ -781,6 +781,39 @@ exports.getSubCircuits = function (circuitId, side) {
 	});
 }
 
+/**
+ * Updates data of particular category of a circuit
+ *
+ * circuitId String GUID of the circuit
+ * categoryId Integer ID of the category
+ * body Category Data to update for the category
+ * returns Category
+ **/
+exports.updateCircuitCategory = function (circuitId, categoryId, body) {
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+		const query = `
+			UPDATE Categories SET ?
+			WHERE CircuitID=?
+			AND CategoryID=?
+		`;
+		const data = {};
+		if (body.name !== undefined) {
+			data['Name'] = body.name;
+		}
+		if (body.color !== undefined) {
+			data['RgbColor'] = body.color;
+		}
+		const response = await sql.query(query, [data, circuitId, categoryId]);
+		if (response.affectedRows === 0) {
+			resolve(writer.respondWithCode(404));
+		} else {
+			resolve(body);
+		}
+		sql.end();
+	});
+}
+
 exports.updateCircuitComponent = function (circuitId, componentId, body) {
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();

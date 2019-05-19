@@ -118,7 +118,7 @@ export default class ComponentEditorInspector extends React.Component {
 	updateComponent(component) {
 		$.ajax({
 			method: 'POST',
-			url: 'http://localhost:8080/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + component.componentId,
+			url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + component.componentId,
 			contentType: 'application/json',
 			data: JSON.stringify(component)
 		});

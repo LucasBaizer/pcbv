@@ -42,6 +42,14 @@ app.use(bodyParser.json({
 	limit: 1024 * 1024 * 1024
 }));
 
+app.use(function (req, res, next) {
+	if(req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/docs')) {
+		next();
+	} else {
+		res.end(fs.readFileSync(__dirname + req.originalUrl));
+	}
+});
+
 // Initialize the Swagger middleware
 swaggerTools.initializeMiddleware(swaggerDoc, function (middleware) {
 	// Interpret Swagger resources and attach metadata to request - must be first in swagger-tools middleware chain

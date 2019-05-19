@@ -94,9 +94,9 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	updateCategories(categories) {
-		for(const component of this.state.rootComponents) {
-			for(const category of categories) {
-				if(component.category.categoryId === category.categoryId) {
+		for (const component of this.state.rootComponents) {
+			for (const category of categories) {
+				if (component.category.categoryId === category.categoryId) {
 					component.category = category;
 				}
 			}
@@ -166,7 +166,7 @@ export default class EditorCanvas extends React.Component {
 
 			$.ajax({
 				method: 'POST',
-				url: 'http://localhost:8080/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
+				url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
 				contentType: 'application/json',
 				data: JSON.stringify(component),
 				success: data => {
@@ -181,7 +181,7 @@ export default class EditorCanvas extends React.Component {
 			});
 
 			this.state.rootComponents.push(component);
-		} else if(!this.state.mouseMoved) {
+		} else if (!this.state.mouseMoved) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
 			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
@@ -195,7 +195,7 @@ export default class EditorCanvas extends React.Component {
 				const h = component.bounds.height * heightRatio * this.state.scaleFactor;
 
 				if (px > x && px < x + w && py > y && py < y + h) {
-					if(this.state.selectedComponentId === component.componentId) {
+					if (this.state.selectedComponentId === component.componentId) {
 						break;
 					}
 					changedSelectedComponent = true;
@@ -246,7 +246,7 @@ export default class EditorCanvas extends React.Component {
 				});
 			}
 
-			if(!this.state.mouseMoved) {
+			if (!this.state.mouseMoved && ((e.pageX - rect.left) !== this.state.canvasLocalMouseX) && ((e.pageY - rect.top) !== this.state.canvasLocalMouseY)) {
 				this.setState({
 					mouseMoved: true
 				});
@@ -280,13 +280,14 @@ export default class EditorCanvas extends React.Component {
 	onScroll(e) {
 		const increase = -e.deltaY / 500;
 		const newScale = this.clamp(this.state.scaleFactor + increase, 1, 5);
-		const offsets = this.getRescaleOffsets(this.state.viewerOffsetX, this.state.viewerOffsetY, newScale);
+		const changeX = (this.state.currentImage.width / this.state.scaleFactor - this.state.currentImage.width / newScale) / 2;
+		const changeY = (this.state.currentImage.height / this.state.scaleFactor - this.state.currentImage.height / newScale) / 2;
+		const offsets = this.getRescaleOffsets(this.state.viewerOffsetX - changeX, this.state.viewerOffsetY - changeY, newScale);
 		this.setState({
 			scaleFactor: newScale,
 			viewerOffsetX: offsets[0],
 			viewerOffsetY: offsets[1]
 		});
-
 	}
 
 	hexToRgb(hex) {

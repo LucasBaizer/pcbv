@@ -486,6 +486,38 @@ paths:
           description: "Circuit does not exist"
       x-swagger-router-controller: "Circuit"
   /circuit/{circuitId}/category/{categoryId}:
+    post:
+      tags:
+      - "circuit"
+      summary: "Updates data of particular category of a circuit"
+      operationId: "updateCircuitCategory"
+      parameters:
+      - name: "circuitId"
+        in: "path"
+        description: "GUID of the circuit"
+        required: true
+        type: "string"
+      - name: "categoryId"
+        in: "path"
+        description: "ID of the category"
+        required: true
+        type: "integer"
+      - in: "body"
+        name: "body"
+        description: "Data to update for the category"
+        required: true
+        schema:
+          $ref: "#/definitions/Category"
+      responses:
+        200:
+          description: "Successfully updated category"
+          schema:
+            $ref: "#/definitions/Category"
+        400:
+          description: "Invalid request data"
+        404:
+          description: "Either circuit or category does not exist"
+      x-swagger-router-controller: "Circuit"
     delete:
       tags:
       - "circuit"

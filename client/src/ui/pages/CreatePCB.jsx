@@ -97,7 +97,7 @@ export default class CreatePCB extends React.Component {
 
 		$.ajax({
 			method: 'POST',
-			url: 'http://localhost:8080/api/v1/circuit',
+			url: '/api/v1/circuit',
 			contentType: 'application/json',
 			data: JSON.stringify({
 				imageFront: this.state.imageFront.split(',', 2)[1],
