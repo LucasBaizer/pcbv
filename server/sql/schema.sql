@@ -31,7 +31,7 @@ CREATE TABLE Categories (
 	CategoryID INT NOT NULL AUTO_INCREMENT,
 	CircuitID VARCHAR(36),
 	Name VARCHAR(255),
-	RgbColor VARCHAR(6),
+	RgbColor VARCHAR(8),
 
 	FOREIGN KEY (CircuitID)
 		REFERENCES Circuits(CircuitID)

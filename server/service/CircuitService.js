@@ -115,14 +115,14 @@ exports.createCircuit = function (body) {
 				});
 				if (subAttempt) {
 					const defaultCategories = [
-						[id, 'None', 'C8C8C8'],
-						[id, 'Memory', 'FF00FF'],
-						[id, 'CPU', 'FFFFFF'],
-						[id, 'Flash', 'FF0000'],
-						[id, 'Resistor', '00FF00'],
-						[id, 'Capacitor', '0000FF'],
-						[id, 'Power Conversion', 'FFFF00'],
-						[id, 'Communication', '00FFFF']
+						[id, 'None', 'C8C8C8C0'],
+						[id, 'Memory', 'FF00FFC0'],
+						[id, 'CPU', 'FFFFFFC0'],
+						[id, 'Flash', 'FF0000C0'],
+						[id, 'Resistor', '00FF00C0'],
+						[id, 'Capacitor', '0000FFC0'],
+						[id, 'Power Conversion', 'FFFF00C0'],
+						[id, 'Communication', '00FFFFC0']
 					];
 					await sql.query('INSERT INTO Categories (CircuitID, Name, RgbColor) VALUES ?', [defaultCategories]);
 					await sql.commit();
@@ -159,7 +159,7 @@ exports.createCircuitCategory = function (circuitId, body) {
 		const sql = await util.connect();
 
 		body.color = body.color.toUpperCase();
-		if (!/^[0123456789ABCDEF]+$/g.test(body.color) || body.color.length !== 6) {
+		if (!/^[0123456789ABCDEF]+$/g.test(body.color) || body.color.length !== 8) {
 			resolve(writer.respondWithCode(400, {
 				error: 'Invalid color'
 			}));

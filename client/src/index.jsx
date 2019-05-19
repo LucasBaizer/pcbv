@@ -11,7 +11,7 @@ import ApplicationNavbar from './ui/components/ApplicationNavbar';
 import './index.css';
 
 (async () => {
-	const client = await new SwaggerClient('/api-docs');
+	const client = await new SwaggerClient(Api.prefix + '/api-docs');
 	Api.api = client.apis;
 
 	const history = createBrowserHistory();

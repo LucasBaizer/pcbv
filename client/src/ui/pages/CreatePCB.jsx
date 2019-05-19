@@ -2,6 +2,7 @@ import React from 'react';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCamera } from '@fortawesome/free-solid-svg-icons';
+import Api from '../../Api';
 import './CreatePCB.css';
 
 /* global $ */
@@ -97,7 +98,7 @@ export default class CreatePCB extends React.Component {
 
 		$.ajax({
 			method: 'POST',
-			url: '/api/v1/circuit',
+			url: Api.prefix + '/api/v1/circuit',
 			contentType: 'application/json',
 			data: JSON.stringify({
 				imageFront: this.state.imageFront.split(',', 2)[1],

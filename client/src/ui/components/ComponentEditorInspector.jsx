@@ -21,6 +21,12 @@ export default class ComponentEditorInspector extends React.Component {
 		this.onClickDelete = this.onClickDelete.bind(this);
 	}
 
+	componentDidMount() {
+		if(!this.state.component.name) {
+			this.nameInput.focus();
+		}
+	}
+
 	componentDidUpdate(prevProps) {
 		if (prevProps.component !== this.props.component) {
 			if (this.state.timeout) {
@@ -30,6 +36,10 @@ export default class ComponentEditorInspector extends React.Component {
 			this.setState({
 				component: this.props.component,
 				timeout: null
+			}, () => {
+				if(!this.state.component.name) {
+					this.nameInput.focus();
+				}
 			});
 		}
 	}
@@ -37,7 +47,7 @@ export default class ComponentEditorInspector extends React.Component {
 	onChangeComponentName(e) {
 		const newComponent = {
 			...this.state.component,
-			name: e.target.value
+			name: e.target.value || 'New Component'
 		};
 
 		if (this.state.timeout) {
@@ -118,7 +128,7 @@ export default class ComponentEditorInspector extends React.Component {
 	updateComponent(component) {
 		$.ajax({
 			method: 'POST',
-			url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + component.componentId,
+			url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + component.componentId,
 			contentType: 'application/json',
 			data: JSON.stringify(component)
 		});
@@ -132,7 +142,7 @@ export default class ComponentEditorInspector extends React.Component {
 			<div className="inspector-menu">
 				<Row className="inspector-header">
 					<Col md={{ span: 12 }}>
-						<h3>{this.state.component.name}</h3>
+						<h3>{this.state.component.name || 'New Component'}</h3>
 					</Col>
 				</Row>
 				<Row>
@@ -140,7 +150,7 @@ export default class ComponentEditorInspector extends React.Component {
 						<Form>
 							<Form.Group>
 								<Form.Label>Component Name</Form.Label>
-								<Form.Control type="text" value={this.state.component.name} placeholder="BAIZERLABS Serial Bus" onChange={this.onChangeComponentName} />
+								<Form.Control type="text" value={this.state.component.name} placeholder="New Component" onChange={this.onChangeComponentName} ref={nameInput => this.nameInput = nameInput} />
 							</Form.Group>
 							<Form.Group>
 								<Form.Label>Description</Form.Label>

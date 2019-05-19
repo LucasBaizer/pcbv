@@ -59,7 +59,7 @@ export default class CircuitEditorInspector extends React.Component {
 
 			return;
 		} else if (e.target.getAttribute('class') === 'inspector-color-cube') {
-			this.colorPicker.show('#' + this.props.categories[this.props.categories.findIndex(category => category.categoryId === id)].color, e.pageX, e.pageY);
+			this.colorPicker.show(this.props.categories[this.props.categories.findIndex(category => category.categoryId === id)].color, e.pageX, e.pageY);
 			this.setState({
 				editingCategory: id
 			});
@@ -80,19 +80,27 @@ export default class CircuitEditorInspector extends React.Component {
 		this.props.onChangeCategories(clone);
 	}
 
+	toHex(d) {
+		return ('0' + (Number(d).toString(16))).slice(-2).toUpperCase()
+	}
+
+	rgbToHex(rgba) {
+		return (this.toHex(rgba.r) + this.toHex(rgba.g) + this.toHex(rgba.b) + this.toHex(Math.floor(rgba.a * 256))).toUpperCase();
+	}
+
 	onChangeColor(e) {
 		const original = [...this.props.categories];
-		original[original.findIndex(category => category.categoryId === this.state.editingCategory)].color = e.hex.substring(1).toUpperCase();
+		original[original.findIndex(category => category.categoryId === this.state.editingCategory)].color = this.rgbToHex(e.rgb);
 		this.props.onUpdateCategories(original);
 	}
 
 	onChangeColorComplete(e) {
 		$.ajax({
 			method: 'POST',
-			url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/category/' + this.state.editingCategory,
+			url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/category/' + this.state.editingCategory,
 			contentType: 'application/json',
 			data: JSON.stringify({
-				color: e.hex.substring(1).toUpperCase()
+				color: this.rgbToHex(e.rgb)
 			})
 		});
 	}
@@ -119,11 +127,11 @@ export default class CircuitEditorInspector extends React.Component {
 	createCategory() {
 		$.ajax({
 			method: 'POST',
-			url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/category',
+			url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/category',
 			contentType: 'application/json',
 			data: JSON.stringify({
 				name: this.state.createCategoryName,
-				color: Math.floor(Math.random() * 16777215).toString(16).toUpperCase()
+				color: ('000000' + (Math.floor(Math.random() * 16777215).toString(16))).slice(-6).toUpperCase() + 'C0'
 			}),
 			success: data => {
 				const original = [...this.props.categories];
@@ -185,7 +193,7 @@ export default class CircuitEditorInspector extends React.Component {
 												data-category={category.categoryId.toString()}
 												onClick={this.onClickCategory}>
 												<span className="inspector-color-cube" style={{
-													backgroundColor: '#' + category.color
+													backgroundColor: '#' + category.color.substring(0, 6)
 												}} />
 												<span className="inspector-category-name">{category.name}</span>
 												<FontAwesomeIcon icon={faTrashAlt} className="inspector-trash-icon" />

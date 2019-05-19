@@ -158,7 +158,7 @@ export default class EditorCanvas extends React.Component {
 					width: this.state.drawComponentX * increaseX / this.state.scaleFactor,
 					height: this.state.drawComponentY * increaseY / this.state.scaleFactor
 				},
-				name: 'New Component',
+				name: '',
 				description: '',
 				categoryId: noneCategory.categoryId,
 				category: noneCategory
@@ -166,7 +166,7 @@ export default class EditorCanvas extends React.Component {
 
 			$.ajax({
 				method: 'POST',
-				url: '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
+				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
 				contentType: 'application/json',
 				data: JSON.stringify(component),
 				success: data => {
@@ -291,11 +291,12 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	hexToRgb(hex) {
-		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+		const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 		return result ? {
 			r: parseInt(result[1], 16),
 			g: parseInt(result[2], 16),
-			b: parseInt(result[3], 16)
+			b: parseInt(result[3], 16),
+			a: parseInt(result[4], 16) / 255
 		} : null;
 	}
 
@@ -358,7 +359,7 @@ export default class EditorCanvas extends React.Component {
 						if (this.state.selectedComponentId === component.componentId) {
 							ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
 						} else {
-							ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.75)';
+							ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + rgb.a + ')';
 						}
 						ctx.fillRect(
 							(this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor,
@@ -368,7 +369,7 @@ export default class EditorCanvas extends React.Component {
 
 						ctx.fillStyle = '#000000';
 
-						const lines = component.name.split(' ');
+						const lines = (component.name || 'New Component').split(' ');
 						const longest = [...lines].sort((a, b) => b.length - a.length)[0];
 						const fontSize = component.bounds.width * widthRatio * this.state.scaleFactor / longest.length * 1.5;
 						ctx.font = fontSize + 'px Courier';

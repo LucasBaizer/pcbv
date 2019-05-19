@@ -6,13 +6,13 @@ env.config();
 var fs = require('fs');
 var path = require('path');
 var http = require('http');
+var path = require('path');
 
 var app = require('connect')();
 var swaggerTools = require('swagger-tools');
 var jsyaml = require('js-yaml');
-var serverPort = 8080;
+var serverPort = process.env.DEVELOPMENT ? 8080 : 80;
 var bodyParser = require('body-parser');
-
 
 // swaggerRouter configuration
 var options = {
@@ -46,7 +46,12 @@ app.use(function (req, res, next) {
 	if(req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/docs')) {
 		next();
 	} else {
-		res.end(fs.readFileSync(__dirname + req.originalUrl));
+		const filePath = path.join(__dirname, '..', 'build', req.originalUrl);
+		if(!fs.existsSync(filePath) || !fs.lstatSync(filePath).isFile()) {
+			res.end(fs.readFileSync(path.join(__dirname, '..', 'build', 'index.html')));
+		} else {
+			res.end(fs.readFileSync(filePath));
+		}
 	}
 });
 
