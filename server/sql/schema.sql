@@ -47,6 +47,7 @@ CREATE TABLE Components (
 	RectWidth INT,
 	RectHeight INT,
 	Name VARCHAR(255),
+	Designator VARCHAR(255),
 	Description VARCHAR(1023),
 	DocumentationUrl VARCHAR(1023),
 	CategoryID INT,

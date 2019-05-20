@@ -16,20 +16,25 @@ function consolidate(categorySql, idField) {
 			currentCategory = {
 				...category,
 				TitleTagContent: [],
-				DescriptionTagContent: []
+				DescriptionTagContent: [],
+				DesignatorTagContent: []
 			};
 			if (category['TagContent']) {
-				if(category['TagType'] === 0) {
+				if (category['TagType'] === 0) {
 					currentCategory['TitleTagContent'].push(category['TagContent']);
-				} else if(category['TagType'] === 1) {
+				} else if (category['TagType'] === 1) {
 					currentCategory['DescriptionTagContent'].push(category['TagContent']);
+				} else if (category['TagType'] === 2) {
+					currentCategory['DesignatorTagContent'].push(category['TagContent']);
 				}
 			}
 		} else {
-			if(category['TagType'] === 0) {
+			if (category['TagType'] === 0) {
 				currentCategory['TitleTagContent'].push(category['TagContent']);
-			} else if(category['TagType'] === 1) {
+			} else if (category['TagType'] === 1) {
 				currentCategory['DescriptionTagContent'].push(category['TagContent']);
+			} else if (category['TagType'] === 2) {
+				currentCategory['DesignatorTagContent'].push(category['TagContent']);
 			}
 		}
 	}
@@ -55,20 +60,25 @@ function generateCategories(categorySql) {
 				categoryId: category['CategoryID'],
 				circuitId: category['CircuitID'],
 				titleTags: [],
-				descriptionTags: []
+				descriptionTags: [],
+				designatorTags: []
 			};
 			if (category['TagContent']) {
-				if(category['TagType'] === 0) {
+				if (category['TagType'] === 0) {
 					currentCategory.titleTags.push(category['TagContent']);
-				} else if(category['TagType'] === 1) {
+				} else if (category['TagType'] === 1) {
 					currentCategory.descriptionTags.push(category['TagContent']);
+				} else if (category['TagType'] === 2) {
+					currentCategory.designatorTags.push(category['TagContent']);
 				}
 			}
 		} else {
-			if(category['TagType'] === 0) {
+			if (category['TagType'] === 0) {
 				currentCategory.titleTags.push(category['TagContent']);
-			} else if(category['TagType'] === 1) {
+			} else if (category['TagType'] === 1) {
 				currentCategory.descriptionTags.push(category['TagContent']);
+			} else if (category['TagType'] === 2) {
+				currentCategory.designatorTags.push(category['TagContent']);
 			}
 		}
 	}
@@ -147,10 +157,10 @@ exports.createCircuit = function (body) {
 
 					const firstId = response.insertId;
 					const defaultTags = [
-						[firstId + 4, '^R', 0], // resistor
-						[firstId + 5, '^C', 0], // capacitor
-						[firstId + 6, '^[IL]', 0], // power conversion
-						[firstId + 8, '^[DUQ]', 0] // other IC
+						[firstId + 4, '^R[0-9]+$', 0], // resistor
+						[firstId + 5, '^C[0-9]+$', 0], // capacitor
+						[firstId + 6, '^[IL][0-9]+$', 0], // power conversion
+						[firstId + 8, '^[DUQ][0-9]+$', 0] // other IC
 					];
 					await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [defaultTags]);
 
@@ -208,14 +218,17 @@ exports.createCircuitCategory = function (circuitId, body) {
 			});
 			if (attempt) {
 				const id = attempt.insertId;
-				if ((body.titleTags && body.titleTags.length > 0) || (body.descriptionTags && body.descriptionTags.length > 0)) {
+				if ((body.titleTags && body.titleTags.length > 0) || (body.descriptionTags && body.descriptionTags.length > 0) || (body.designatorTags && body.designatorTags.length > 0)) {
 					// const insertTags = body.titleTags.map(tag => [id, tag]);
 					const insertTags = [];
-					if(body.titleTags) {
+					if (body.titleTags) {
 						insertTags = insertTags.concat(body.titleTags.map(tag => [id, tag, 0]));
 					}
-					if(body.descriptionTags) {
-						insertTags = insertTags.concat(body.descriptionTags.map(tag => [id, tag, 0]));
+					if (body.descriptionTags) {
+						insertTags = insertTags.concat(body.descriptionTags.map(tag => [id, tag, 1]));
+					}
+					if (body.designatorTags) {
+						insertTags = insertTags.concat(body.designatorTags.map(tag => [id, tag, 2]));
 					}
 					const attemptTags = await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [insertTags]).catch(() => {
 						resolve(writer.respondWithCode(400, {
@@ -229,7 +242,8 @@ exports.createCircuitCategory = function (circuitId, body) {
 							categoryId: id,
 							circuitId: circuitId,
 							titleTags: body.titleTags || [],
-							descriptionTags: body.descriptionTags || []
+							descriptionTags: body.descriptionTags || [],
+							designatorTags: body.designatorTags | []
 						});
 					}
 				} else {
@@ -239,7 +253,8 @@ exports.createCircuitCategory = function (circuitId, body) {
 						categoryId: id,
 						circuitId: circuitId,
 						titleTags: [],
-						descriptionTags: []
+						descriptionTags: [],
+						designatorTags: []
 					});
 				}
 			}
@@ -275,6 +290,7 @@ exports.createComponent = function (circuitId, body, side) {
 				RectHeight: body.bounds.height,
 				DocumentationUrl: body.documentationUrl,
 				Description: body.description,
+				Designator: body.designator,
 				Name: body.name,
 				CategoryID: body.categoryId,
 				SubCircuitID: mainSub
@@ -400,6 +416,7 @@ exports.createSubCircuitComponent = function (circuitId, subCircuitId, body) {
 				RectHeight: body.bounds.height,
 				DocumentationUrl: body.documentationUrl,
 				Description: body.description,
+				Designator: body.designator,
 				Name: body.name,
 				CategoryID: body.categoryId,
 				SubCircuitID: subCircuitId
@@ -650,7 +667,7 @@ exports.getCircuitComponents = function (circuitId, side) {
 		} else {
 			const sql = await util.connect();
 			const query = `
-				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
+				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Components.Designator, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 				FROM Components
 				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
@@ -677,6 +694,7 @@ exports.getCircuitComponents = function (circuitId, side) {
 							height: item['RectHeight']
 						},
 						name: item['ComponentName'],
+						designator: item['Designator'],
 						subCircuitId: item['SubCircuitID'],
 						circuitId: item['CircuitID'],
 						description: item['Description'],
@@ -686,7 +704,8 @@ exports.getCircuitComponents = function (circuitId, side) {
 							categoryId: item['CategoryID'],
 							circuitId: item['CircuitID'],
 							titleTags: item['TitleTagContent'],
-							descriptionTags: item['DescriptionTagContent']
+							descriptionTags: item['DescriptionTagContent'],
+							designatorTags: item['DesignatorTagContent']
 						}
 					};
 				}));
@@ -713,7 +732,7 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			const query = `
-				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
+				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Designator, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 				FROM Components
 				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
@@ -739,6 +758,7 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 							height: item['Height']
 						},
 						name: item['ComponentName'],
+						designator: item['Designator'],
 						subCircuitId: item['SubCircuitID'],
 						circuitId: item['CircuitID'],
 						description: item['Description'],
@@ -748,7 +768,8 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 							categoryId: item['CategoryID'],
 							circuitId: item['CircuitID'],
 							titleTags: item['TitleTagContent'],
-							descriptionTags: item['DescriptionTagContent']
+							descriptionTags: item['DescriptionTagContent'],
+							designatorTags: item['DesignatorTagContent']
 						}
 					};
 				}));
@@ -845,14 +866,22 @@ exports.updateCircuitCategory = function (circuitId, categoryId, body) {
 			data['RgbColor'] = body.color;
 		}
 		const response = await sql.query(query, [data, circuitId, categoryId]);
-		if (response.affectedRows === 0 && !body.titleTags && !body.descriptionTags) {
+		if (response.affectedRows === 0 && !body.titleTags && !body.descriptionTags && !body.designatorTags) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			if(body.titleTags !== undefined && body.titleTags.length > 0) {
+			if (body.titleTags !== undefined && body.titleTags.length > 0) {
 				await sql.query('DELETE FROM CategoryTags WHERE CategoryID=? AND TagType=0', categoryId);
-				// TODO await sql.query('INSERT INTO CategoryTags VALUES ?')
+				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [[body.titleTags.map(tag => [categoryId, tag, 0])]]);
 			}
-			
+			if (body.descriptionTags !== undefined && body.descriptionTags.length > 0) {
+				await sql.query('DELETE FROM CategoryTags WHERE CategoryID=? AND TagType=1', categoryId);
+				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [[body.descriptionTags.map(tag => [categoryId, tag, 1])]]);
+			}
+			if (body.designatorTags !== undefined && body.designatorTags.length > 0) {
+				await sql.query('DELETE FROM CategoryTags WHERE CategoryID=? AND TagType=2', categoryId);
+				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [[body.designatorTags.map(tag => [categoryId, tag, 2])]]);
+			}
+
 			resolve(body);
 		}
 		sql.end();
@@ -884,7 +913,7 @@ exports.updateCircuitComponent = function (circuitId, componentId, body) {
 		if (body.categoryId !== undefined) {
 			data['CategoryID'] = body.categoryId;
 		}
-		if(body.bounds !== undefined) {
+		if (body.bounds !== undefined) {
 			data['Components.RectX'] = body.bounds.x;
 			data['Components.RectY'] = body.bounds.y;
 			data['Components.RectWidth'] = body.bounds.width;
@@ -935,7 +964,7 @@ exports.updateSubCircuitComponent = function (circuitId, subCircuitId, component
 		if (body.categoryId !== undefined) {
 			data['CategoryID'] = body.categoryId;
 		}
-		if(body.bounds !== undefined) {
+		if (body.bounds !== undefined) {
 			data['Components.RectX'] = body.bounds.x;
 			data['Components.RectY'] = body.bounds.y;
 			data['Components.RectWidth'] = body.bounds.width;

@@ -23,7 +23,7 @@ export default class ComponentEditorInspector extends React.Component {
 	}
 
 	componentDidMount() {
-		if(!this.state.component.name) {
+		if (!this.state.component.name) {
 			this.nameInput.focus();
 		}
 	}
@@ -38,7 +38,7 @@ export default class ComponentEditorInspector extends React.Component {
 				component: this.props.component,
 				timeout: null
 			}, () => {
-				if(!this.state.component.name) {
+				if (!this.state.component.name) {
 					this.nameInput.focus();
 				}
 			});
@@ -51,18 +51,18 @@ export default class ComponentEditorInspector extends React.Component {
 			name: e.target.value
 		};
 
-		if(this.state.component.category.name === 'None') {
-			categoryLoop:
-			for(const category of this.props.categories) {
-				for(const tag of category.titleTags) {
-					if(new RegExp(tag).test(e.target.value)) {
-						newComponent.categoryId = category.categoryId;
-						newComponent.category = category;
-						break categoryLoop;
-					}
+		//if(this.state.component.category.name === 'None') {
+		categoryLoop:
+		for (const category of this.props.categories) {
+			for (const tag of category.titleTags) {
+				if (new RegExp(tag).test(e.target.value)) {
+					newComponent.categoryId = category.categoryId;
+					newComponent.category = category;
+					break categoryLoop;
 				}
 			}
 		}
+		//}
 
 		if (this.state.timeout) {
 			clearTimeout(this.state.timeout);
@@ -83,11 +83,11 @@ export default class ComponentEditorInspector extends React.Component {
 			description: e.target.value
 		};
 
-		if(this.state.component.category.name === 'None') {
+		if (this.state.component.category.name === 'None') {
 			categoryLoop:
-			for(const category of this.props.categories) {
-				for(const tag of category.descriptionTags) {
-					if(new RegExp(tag).test(e.target.value)) {
+			for (const category of this.props.categories) {
+				for (const tag of category.descriptionTags) {
+					if (new RegExp(tag).test(e.target.value)) {
 						newComponent.categoryId = category.categoryId;
 						newComponent.category = category;
 						break categoryLoop;
@@ -184,7 +184,7 @@ export default class ComponentEditorInspector extends React.Component {
 	}
 
 	render() {
-		if(this.state.component === null) {
+		if (this.state.component === null) {
 			return (null);
 		}
 		return (
