@@ -16,6 +16,7 @@ export default class ComponentEditorInspector extends React.Component {
 
 		this.onChangeComponentName = this.onChangeComponentName.bind(this);
 		this.onChangeCategory = this.onChangeCategory.bind(this);
+		this.onChangeDesignator = this.onChangeDesignator.bind(this);
 		this.onChangeDescription = this.onChangeDescription.bind(this);
 		this.onChangeDocumentationUrl = this.onChangeDocumentationUrl.bind(this);
 		this.onClickDelete = this.onClickDelete.bind(this);
@@ -51,7 +52,6 @@ export default class ComponentEditorInspector extends React.Component {
 			name: e.target.value
 		};
 
-		//if(this.state.component.category.name === 'None') {
 		categoryLoop:
 		for (const category of this.props.categories) {
 			for (const tag of category.titleTags) {
@@ -62,7 +62,36 @@ export default class ComponentEditorInspector extends React.Component {
 				}
 			}
 		}
-		//}
+
+		if (this.state.timeout) {
+			clearTimeout(this.state.timeout);
+		}
+		this.setState({
+			component: newComponent,
+			timeout: setTimeout(() => {
+				this.updateComponent(newComponent);
+			}, 1000)
+		});
+
+		this.props.onComponentUpdate(newComponent);
+	}
+
+	onChangeDesignator(e) {
+		const newComponent = {
+			...this.state.component,
+			designator: e.target.value
+		};
+
+		categoryLoop:
+		for (const category of this.props.categories) {
+			for (const tag of category.designatorTags) {
+				if (new RegExp(tag).test(e.target.value)) {
+					newComponent.categoryId = category.categoryId;
+					newComponent.category = category;
+					break categoryLoop;
+				}
+			}
+		}
 
 		if (this.state.timeout) {
 			clearTimeout(this.state.timeout);
@@ -200,6 +229,10 @@ export default class ComponentEditorInspector extends React.Component {
 							<Form.Group>
 								<Form.Label>Component Name</Form.Label>
 								<Form.Control type="text" value={this.state.component.name} placeholder="New Component" onChange={this.onChangeComponentName} ref={nameInput => this.nameInput = nameInput} />
+							</Form.Group>
+							<Form.Group>
+								<Form.Label>Designator</Form.Label>
+								<Form.Control type="text" value={this.state.component.designator} placeholder="X99" onChange={this.onChangeDesignator} />
 							</Form.Group>
 							<Form.Group>
 								<Form.Label>Description</Form.Label>
