@@ -46,7 +46,8 @@ export default class EditorInspector extends React.Component {
 					categories={this.state.categories}
 					onChangeCategories={this.props.onChangeCategories}
 					onUpdateCategories={this.props.onUpdateCategories}
-					onChangeSearchText={this.props.onChangeSearchText} />
+					onChangeSearchText={this.props.onChangeSearchText}
+					onChangeShowSubCircuits={this.props.onChangeShowSubCircuits} />
 			);
 		} else {
 			return (

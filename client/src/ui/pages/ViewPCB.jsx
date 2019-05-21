@@ -18,7 +18,8 @@ export default class ViewPCB extends React.Component {
 			currentSide: 'front',
 			mode: 'edit',
 			selectedComponent: null,
-			componentMode: 'name'
+			componentMode: 'name',
+			showSubCircuits: true
 		};
 
 		Api.api.circuit.getCircuit({
@@ -38,6 +39,13 @@ export default class ViewPCB extends React.Component {
 		this.onChangeCategories = this.onChangeCategories.bind(this);
 		this.onUpdateCategories = this.onUpdateCategories.bind(this);
 		this.onChangeSearchText = this.onChangeSearchText.bind(this);
+		this.onChangeShowSubCircuits = this.onChangeShowSubCircuits.bind(this);
+	}
+
+	onChangeShowSubCircuits(show) {
+		this.setState({
+			showSubCircuits: show
+		});
 	}
 
 	onEditorLoaded() {
@@ -143,7 +151,7 @@ export default class ViewPCB extends React.Component {
 								side={this.state.currentSide}
 								mode={this.state.mode}
 								componentMode={this.state.componentMode}
-								showSubCircuits={true}
+								showSubCircuits={this.state.showSubCircuits}
 								onLoad={this.onEditorLoaded}
 								onComponentSelected={this.onComponentSelected} />
 						</Col>
@@ -156,7 +164,8 @@ export default class ViewPCB extends React.Component {
 								onComponentUpdate={this.onComponentUpdate}
 								onChangeCategories={this.onChangeCategories}
 								onUpdateCategories={this.onUpdateCategories}
-								onChangeSearchText={this.onChangeSearchText} />
+								onChangeSearchText={this.onChangeSearchText}
+								onChangeShowSubCircuits={this.onChangeShowSubCircuits} />
 						</Col>
 					</Row>
 				</Container>

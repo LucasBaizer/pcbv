@@ -15,7 +15,8 @@ export default class CircuitEditorInspector extends React.Component {
 			selectedCategories: this.props.categories.map(category => category.categoryId),
 			editingCategory: -1,
 			editingModalCategory: null,
-			searchText: ''
+			searchText: '',
+			showSubCircuits: true
 		};
 
 		this.onClickCategory = this.onClickCategory.bind(this);
@@ -25,6 +26,15 @@ export default class CircuitEditorInspector extends React.Component {
 		this.onHideCreateCategory = this.onHideCreateCategory.bind(this);
 		this.createCategory = this.createCategory.bind(this);
 		this.onChangeSearchText = this.onChangeSearchText.bind(this);
+		this.onChangeShowSubCircuits = this.onChangeShowSubCircuits.bind(this);
+	}
+
+	onChangeShowSubCircuits(e) {
+		this.setState({
+			showSubCircuits: !this.state.showSubCircuits
+		});
+
+		this.props.onChangeShowSubCircuits(!this.state.showSubCircuits);
 	}
 
 	onClickCategory(e) {
@@ -170,7 +180,14 @@ export default class CircuitEditorInspector extends React.Component {
 				}),
 				success: data => {
 					const original = [...this.props.categories];
-					original[original.findIndex(category => category.categryId === this.state.editingModalCategory.categoryId)] = data;
+					console.log(original);
+					const index = original.findIndex(category => category.categoryId === this.state.editingModalCategory.categoryId);
+
+					original[index] = {
+						...original[index],
+						...data
+					};
+					console.log(original);
 					this.props.onUpdateCategories(original);
 
 					this.setState({
@@ -230,6 +247,9 @@ export default class CircuitEditorInspector extends React.Component {
 											</ListGroup.Item>
 										))}
 									</ListGroup>
+								</Form.Group>
+								<Form.Group>
+									<Form.Check type="checkbox" label="Show Subcircuits" checked={this.state.showSubCircuits} onChange={this.onChangeShowSubCircuits} />
 								</Form.Group>
 							</Form>
 						</Col>
