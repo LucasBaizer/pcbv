@@ -38,6 +38,14 @@
 	cursor: pointer;
 }
 
+.inspector-pencil-icon {
+	margin: auto;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	right: 35px;
+}
+
 .inspector-trash-icon {
 	margin: auto;
 	position: absolute;

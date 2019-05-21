@@ -17,7 +17,8 @@ export default class ViewPCB extends React.Component {
 			loading: true,
 			currentSide: 'front',
 			mode: 'edit',
-			selectedComponent: null
+			selectedComponent: null,
+			componentMode: 'name'
 		};
 
 		Api.api.circuit.getCircuit({
@@ -31,6 +32,7 @@ export default class ViewPCB extends React.Component {
 		this.onEditorLoaded = this.onEditorLoaded.bind(this);
 		this.onFlipSides = this.onFlipSides.bind(this);
 		this.onModeChange = this.onModeChange.bind(this);
+		this.onComponentModeChange = this.onComponentModeChange.bind(this);
 		this.onComponentSelected = this.onComponentSelected.bind(this);
 		this.onComponentUpdate = this.onComponentUpdate.bind(this);
 		this.onChangeCategories = this.onChangeCategories.bind(this);
@@ -63,6 +65,14 @@ export default class ViewPCB extends React.Component {
 		}
 	}
 
+	onComponentModeChange(componentMode) {
+		if (componentMode !== this.state.componentMode) {
+			this.setState({
+				componentMode: componentMode
+			});
+		}
+	}
+
 	onComponentSelected(component) {
 		this.setState({
 			selectedComponent: component
@@ -70,11 +80,11 @@ export default class ViewPCB extends React.Component {
 	}
 
 	onComponentUpdate(component, type) {
-		if(type === 'delete') {
+		if (type === 'delete') {
 			this.setState({
 				selectedComponent: null
 			});
-		} else if(type !== 'move') {
+		} else if (type !== 'move') {
 			this.setState({
 				selectedComponent: component
 			});
@@ -84,7 +94,7 @@ export default class ViewPCB extends React.Component {
 	}
 
 	onChangeCategories(categories) {
-		this.editorCanvas.updateSelectedCategories(categories);	
+		this.editorCanvas.updateSelectedCategories(categories);
 	}
 
 	onUpdateCategories(categories) {
@@ -108,11 +118,17 @@ export default class ViewPCB extends React.Component {
 					<Row>
 						<Col md={{ span: 9 }} className="pcb-left-pane">
 							<Row className="pcb-view-header">
-								<Col md={{ span: 9 }}>
+								<Col md={{ span: 6 }}>
 									<span className="pcb-view-title">{this.state.loading ? 'Loading...' : this.state.circuit.name}</span>
 								</Col>
+								<Col md={{ span: 3 }}>
+									<ButtonGroup toggle={true}>
+										<Button variant={this.state.componentMode === 'name' ? 'primary' : 'light'} onClick={() => this.onComponentModeChange('name')}>Name</Button>
+										<Button variant={this.state.componentMode === 'designator' ? 'primary' : 'light'} onClick={() => this.onComponentModeChange('designator')}>Designator</Button>
+									</ButtonGroup>
+								</Col>
 								<Col md={{ span: 2 }}>
-									<ButtonGroup toggle={true} onChange={this.onModeChange}>
+									<ButtonGroup toggle={true}>
 										<Button variant={this.state.mode === 'edit' ? 'primary' : 'light'} onClick={() => this.onModeChange('edit')}>Edit</Button>
 										<Button variant={this.state.mode === 'view' ? 'primary' : 'light'} onClick={() => this.onModeChange('view')}>View</Button>
 									</ButtonGroup>
@@ -126,6 +142,7 @@ export default class ViewPCB extends React.Component {
 								circuit={this.state.circuit}
 								side={this.state.currentSide}
 								mode={this.state.mode}
+								componentMode={this.state.componentMode}
 								onLoad={this.onEditorLoaded}
 								onComponentSelected={this.onComponentSelected} />
 						</Col>

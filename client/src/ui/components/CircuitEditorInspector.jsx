@@ -1,7 +1,7 @@
 import React from 'react';
 import { Row, Col, Form, ListGroup, Modal, Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faTrashAlt, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 import InspectorColorPicker from './InspectorColorPicker';
 import Api from '../../Api';
 
@@ -210,6 +210,7 @@ export default class CircuitEditorInspector extends React.Component {
 													backgroundColor: '#' + category.color.substring(0, 6)
 												}} />
 												<span className="inspector-category-name">{category.name}</span>
+												{category.name === 'None' ? (null) : (<FontAwesomeIcon icon={faPencilAlt} className="inspector-pencil-icon" />)}
 												{category.name === 'None' ? (null) : (<FontAwesomeIcon icon={faTrashAlt} className="inspector-trash-icon" />)}
 											</ListGroup.Item>
 										))}

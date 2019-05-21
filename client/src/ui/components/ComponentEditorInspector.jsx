@@ -85,7 +85,7 @@ export default class ComponentEditorInspector extends React.Component {
 		categoryLoop:
 		for (const category of this.props.categories) {
 			for (const tag of category.designatorTags) {
-				if (new RegExp(tag).test(e.target.value)) {
+				if (new RegExp(tag, 'i').test(e.target.value)) {
 					newComponent.categoryId = category.categoryId;
 					newComponent.category = category;
 					break categoryLoop;

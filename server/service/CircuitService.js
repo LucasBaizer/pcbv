@@ -157,10 +157,10 @@ exports.createCircuit = function (body) {
 
 					const firstId = response.insertId;
 					const defaultTags = [
-						[firstId + 4, '^R[0-9]+$', 0], // resistor
-						[firstId + 5, '^C[0-9]+$', 0], // capacitor
-						[firstId + 6, '^[IL][0-9]+$', 0], // power conversion
-						[firstId + 8, '^[DUQ][0-9]+$', 0] // other IC
+						[firstId + 4, '^R[0-9]+$', 2], // resistor
+						[firstId + 5, '^C[0-9]+$', 2], // capacitor
+						[firstId + 6, '^[IL][0-9]+$', 2], // power conversion
+						[firstId + 8, '^[DUQ][0-9]+$', 2] // other IC
 					];
 					await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [defaultTags]);
 
@@ -919,6 +919,9 @@ exports.updateCircuitComponent = function (circuitId, componentId, body) {
 			data['Components.RectWidth'] = body.bounds.width;
 			data['Components.RectHeight'] = body.bounds.height;
 		}
+		if(body.designator !== undefined) {
+			data['Designator'] = body.designator;
+		}
 		const response = await sql.query(query, [data, circuitId, componentId]);
 		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
@@ -969,6 +972,9 @@ exports.updateSubCircuitComponent = function (circuitId, subCircuitId, component
 			data['Components.RectY'] = body.bounds.y;
 			data['Components.RectWidth'] = body.bounds.width;
 			data['Components.RectHeight'] = body.bounds.height;
+		}
+		if(body.designator !== undefined) {
+			data['Designator'] = body.designator;
 		}
 		const response = await sql.query(query, [data, circuitId, componentId, subCircuitId]);
 		if (response.affectedRows === 0) {
