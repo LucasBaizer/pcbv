@@ -22,16 +22,17 @@ export default class InspectorCategoryModal extends React.Component {
     }
 
     componentDidUpdate(prevProps, prevState) {
+        const emptyState = {
+            name: '',
+            titleTags: [],
+            designatorTags: [],
+            descriptionTags: [],
+            titleTagsValue: '',
+            designatorTagsValue: '',
+            descriptionTagsValue: ''
+        };
         if(prevProps.show !== this.props.show) {
-            this.setState({
-                name: '',
-                titleTags: [],
-                designatorTags: [],
-                descriptionTags: [],
-                titleTagsValue: '',
-                designatorTagsValue: '',
-                descriptionTagsValue: ''
-            });
+            this.setState(emptyState);
         }
 
         if(prevProps.category !== this.props.category) {
@@ -45,6 +46,8 @@ export default class InspectorCategoryModal extends React.Component {
                     designatorTagsValue: this.props.category.designatorTags.join(', '),
                     descriptionTagsValue: this.props.category.descriptionTags.join(', ')
                 });
+            } else {
+                this.setState(emptyState);
             }
         }
     }
@@ -102,6 +105,7 @@ export default class InspectorCategoryModal extends React.Component {
                     </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
+                    <Button variant="primary" onClick={this.props.onHide}>Close</Button>
                     <Button variant="success" onClick={() => this.props.onCreateCategory({
                         name: this.state.name,
                         titleTags: this.state.titleTags,

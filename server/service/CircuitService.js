@@ -220,7 +220,7 @@ exports.createCircuitCategory = function (circuitId, body) {
 				const id = attempt.insertId;
 				if ((body.titleTags && body.titleTags.length > 0) || (body.descriptionTags && body.descriptionTags.length > 0) || (body.designatorTags && body.designatorTags.length > 0)) {
 					// const insertTags = body.titleTags.map(tag => [id, tag]);
-					const insertTags = [];
+					let insertTags = [];
 					if (body.titleTags) {
 						insertTags = insertTags.concat(body.titleTags.map(tag => [id, tag, 0]));
 					}

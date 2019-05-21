@@ -10,7 +10,7 @@ export default class EditorCanvas extends React.Component {
 
 		this.state = {
 			subCircuits: null,
-			rootComponents: null,
+			components: null,
 			categories: null,
 			selectedCategories: [],
 			loaded: false,
@@ -84,7 +84,7 @@ export default class EditorCanvas extends React.Component {
 			circuitId: this.props.circuit.circuitId,
 			side: this.props.side
 		});
-		const rootComponents = await Api.api.circuit.getCircuitComponents({
+		const components = await Api.api.circuit.getCircuitComponents({
 			circuitId: this.props.circuit.circuitId,
 			side: this.props.side
 		});
@@ -93,7 +93,7 @@ export default class EditorCanvas extends React.Component {
 		});
 
 		this.setState({
-			rootComponents: rootComponents.body,
+			components: components.body,
 			subCircuits: subCircuits.body,
 			categories: categories.body,
 			loaded: true
@@ -101,7 +101,7 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	updateCategories(categories) {
-		for (const component of this.state.rootComponents) {
+		for (const component of this.state.components) {
 			for (const category of categories) {
 				if (component.category.categoryId === category.categoryId) {
 					component.category = category;
@@ -114,13 +114,13 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	updateCurrentComponent(component, type) {
-		const clone = [...this.state.rootComponents];
+		const clone = [...this.state.components];
 		const index = clone.findIndex(value => value.componentId === component.componentId);
 
 		if (type === 'delete') {
 			clone.splice(index, 1);
 			this.setState({
-				rootComponents: clone,
+				components: clone,
 				selectedComponentId: -1
 			});
 		} else if (type === 'move') {
@@ -133,7 +133,7 @@ export default class EditorCanvas extends React.Component {
 		} else {
 			clone[index] = component;
 			this.setState({
-				rootComponents: clone
+				components: clone
 			});
 		}
 	}
@@ -211,24 +211,24 @@ export default class EditorCanvas extends React.Component {
 					contentType: 'application/json',
 					data: JSON.stringify(component),
 					success: data => {
-						const clone = [...this.state.rootComponents];
-						clone[this.state.rootComponents.length - 1] = data;
+						const clone = [...this.state.components];
+						clone[this.state.components.length - 1] = data;
 						this.setState({
-							rootComponents: clone,
+							components: clone,
 							selectedComponentId: data.componentId
 						});
 						this.props.onComponentSelected(data);
 					}
 				});
 
-				this.state.rootComponents.push(component);
+				this.state.components.push(component);
 			}
 		} else if (!this.state.mouseMoved) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
 			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
 
-			for (const component of this.state.rootComponents) {
+			for (const component of this.state.components) {
 				const px = e.pageX - rect.left - 20;
 				const py = e.pageY - rect.top - 20;
 				const x = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor;
@@ -285,7 +285,6 @@ export default class EditorCanvas extends React.Component {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
 
 			if ((this.props.mode === 'view' && this.state.currentMouseButton === 0) || (this.props.mode === 'edit' && this.state.currentMouseButton === 1)) {
-				// const offsets = this.getRescaleOffsets((e.pageX - rect.left) - this.state.startMouseX, (e.pageY - rect.top) - this.state.startMouseY, this.state.scaleFactor);
 				const deltaX = ((e.pageX - rect.left) - this.state.deltaX) * (this.state.currentImage.width / this.state.canvasWidth) / this.state.scaleFactor;
 				const deltaY = ((e.pageY - rect.top) - this.state.deltaY) * (this.state.currentImage.height / this.state.canvasHeight) / this.state.scaleFactor;
 				const offsets = this.getRescaleOffsets(this.state.viewerOffsetX + deltaX, this.state.viewerOffsetY + deltaY, this.state.scaleFactor);
@@ -407,7 +406,7 @@ export default class EditorCanvas extends React.Component {
 					ctx.strokeStyle = '#000000';
 
 					const searchTextRegex = new RegExp(this.state.searchText, 'i');
-					for (const component of this.state.rootComponents) {
+					for (const component of this.state.components) {
 						if (this.state.selectedCategories.indexOf(component.category.categoryId) === -1) {
 							continue;
 						}
@@ -435,12 +434,12 @@ export default class EditorCanvas extends React.Component {
 						ctx.fillStyle = '#000000';
 
 						let lines;
-						if(this.props.componentMode === 'name') {
+						if (this.props.componentMode === 'name') {
 							lines = (component.name || 'New Component').split(' ');
-						} else if(this.props.componentMode === 'designator') {
+						} else if (this.props.componentMode === 'designator') {
 							lines = component.designator.split(' ');
 						}
-						
+
 						const longest = [...lines].sort((a, b) => b.length - a.length)[0];
 						const fontSize = Math.min(component.bounds.width * widthRatio * this.state.scaleFactor / longest.length * 1.5, component.bounds.height * heightRatio * this.state.scaleFactor / lines.length);
 						ctx.font = fontSize + 'px Courier';
@@ -459,6 +458,17 @@ export default class EditorCanvas extends React.Component {
 								xOffset - (width / 2),
 								yOffset);
 							yOffset += fontSize;
+						}
+					}
+
+					if (this.props.showSubCircuits) {
+						for (const subCircuit of this.state.subCircuits) {
+							ctx.fillStyle = 'rgb(127, 127, 127, 0.5)';
+							ctx.fillRect(
+								(this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor,
+								(this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor,
+								subCircuit.bounds.width * widthRatio * this.state.scaleFactor,
+								subCircuit.bounds.height * heightRatio * this.state.scaleFactor);
 						}
 					}
 

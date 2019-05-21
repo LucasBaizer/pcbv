@@ -143,6 +143,7 @@ export default class ViewPCB extends React.Component {
 								side={this.state.currentSide}
 								mode={this.state.mode}
 								componentMode={this.state.componentMode}
+								showSubCircuits={true}
 								onLoad={this.onEditorLoaded}
 								onComponentSelected={this.onComponentSelected} />
 						</Col>
