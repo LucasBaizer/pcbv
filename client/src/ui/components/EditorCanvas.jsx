@@ -228,7 +228,8 @@ export default class EditorCanvas extends React.Component {
 			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
 			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
 
-			for (const component of this.state.components) {
+			const backwardsSort = [...this.state.components].sort((a, b) => b.componentId - a.componentId);
+			for (const component of backwardsSort) {
 				const px = e.pageX - rect.left - 20;
 				const py = e.pageY - rect.top - 20;
 				const x = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor;

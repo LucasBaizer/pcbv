@@ -61,21 +61,21 @@ export default class InspectorCategoryModal extends React.Component {
     onChangeTitleTags(e) {
 		this.setState({
             titleTagsValue: e.target.value,
-            titleTags: e.target.value.split(',')
+            titleTags: e.target.value.split(',').map(x => x.trim())
 		});
     }
     
     onChangeDesignatorTags(e) {
 		this.setState({
             designatorTagsValue: e.target.value,
-            designatorTags: e.target.value.split(',')
+            designatorTags: e.target.value.split(',').map(x => x.trim())
 		});
     }
     
     onChangeDescriptionTags(e) {
 		this.setState({
             descriptionTagsValue: e.target.value,
-            descriptionTags: e.target.value.split(',')
+            descriptionTags: e.target.value.split(',').map(x => x.trim())
 		});
 	}
 
