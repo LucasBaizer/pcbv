@@ -1,9 +1,10 @@
 import React from 'react';
-import { Row, Col, Form, ListGroup, Modal, Button } from 'react-bootstrap';
+import { Row, Col, Form, ListGroup } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrashAlt, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 import InspectorColorPicker from './InspectorColorPicker';
 import Api from '../../Api';
+import InspectorCategoryModal from './InspectorCategoryModal';
 
 /* global $ */
 export default class CircuitEditorInspector extends React.Component {
@@ -13,7 +14,7 @@ export default class CircuitEditorInspector extends React.Component {
 		this.state = {
 			selectedCategories: this.props.categories.map(category => category.categoryId),
 			editingCategory: -1,
-			createCategoryName: '',
+			editingModalCategory: null,
 			searchText: ''
 		};
 
@@ -22,7 +23,6 @@ export default class CircuitEditorInspector extends React.Component {
 		this.onChangeColorComplete = this.onChangeColorComplete.bind(this);
 		this.onClickAddCategory = this.onClickAddCategory.bind(this);
 		this.onHideCreateCategory = this.onHideCreateCategory.bind(this);
-		this.onChangeCategoryName = this.onChangeCategoryName.bind(this);
 		this.createCategory = this.createCategory.bind(this);
 		this.onChangeSearchText = this.onChangeSearchText.bind(this);
 	}
@@ -40,24 +40,33 @@ export default class CircuitEditorInspector extends React.Component {
 		const id = parseInt(attributeId, 10);
 
 		if (e.target.tagName === 'svg' || e.target.tagName === 'path') {
-			Api.api.circuit.deleteCircuitCategory({
-				circuitId: this.props.circuit.circuitId,
-				categoryId: id
-			});
+			const icon = e.target.getAttribute('data-icon') || e.target.parentElement.getAttribute('data-icon');
 
-			const clone = [...this.state.selectedCategories];
-			const index = clone.indexOf(id);
-			if (index !== -1) {
-				clone.splice(index, 1);
+			if (icon === 'pencil-alt') {
+				this.setState({
+					showCreateCategory: true,
+					editingModalCategory: this.props.categories.filter(category => category.categoryId === id)[0]
+				});
+			} else {
+				Api.api.circuit.deleteCircuitCategory({
+					circuitId: this.props.circuit.circuitId,
+					categoryId: id
+				});
+
+				const clone = [...this.state.selectedCategories];
+				const index = clone.indexOf(id);
+				if (index !== -1) {
+					clone.splice(index, 1);
+				}
+				this.setState({
+					selectedCategories: clone
+				});
+				this.props.onChangeCategories(clone);
+
+				const original = [...this.props.categories];
+				original.splice(original.findIndex(category => category.categoryId === id), 1);
+				this.props.onUpdateCategories(original);
 			}
-			this.setState({
-				selectedCategories: clone
-			});
-			this.props.onChangeCategories(clone);
-
-			const original = [...this.props.categories];
-			original.splice(original.findIndex(category => category.categoryId === id), 1);
-			this.props.onUpdateCategories(original);
 
 			return;
 		} else if (e.target.getAttribute('class') === 'inspector-color-cube') {
@@ -113,15 +122,8 @@ export default class CircuitEditorInspector extends React.Component {
 		});
 	}
 
-	onChangeCategoryName(e) {
-		this.setState({
-			createCategoryName: e.target.value
-		});
-	}
-
 	onHideCreateCategory() {
 		this.setState({
-			createCategoryName: '',
 			showCreateCategory: false
 		});
 	}
@@ -134,29 +136,49 @@ export default class CircuitEditorInspector extends React.Component {
 		this.props.onChangeSearchText(e.target.value);
 	}
 
-	createCategory() {
-		$.ajax({
-			method: 'POST',
-			url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/category',
-			contentType: 'application/json',
-			data: JSON.stringify({
-				name: this.state.createCategoryName,
-				color: ('000000' + (Math.floor(Math.random() * 16777215).toString(16))).slice(-6).toUpperCase() + 'C0'
-			}),
-			success: data => {
-				const original = [...this.props.categories];
-				original.push(data);
-				this.props.onUpdateCategories(original);
+	createCategory(category) {
+		if (this.state.editingModalCategory === null) {
+			$.ajax({
+				method: 'POST',
+				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/category',
+				contentType: 'application/json',
+				data: JSON.stringify({
+					...category,
+					color: ('000000' + (Math.floor(Math.random() * 16777215).toString(16))).slice(-6).toUpperCase() + 'C0'
+				}),
+				success: data => {
+					const original = [...this.props.categories];
+					original.push(data);
+					this.props.onUpdateCategories(original);
 
-				const clone = [...this.state.selectedCategories];
-				clone.push(data.categoryId);
-				this.setState({
-					selectedCategories: clone
-				});
+					const clone = [...this.state.selectedCategories];
+					clone.push(data.categoryId);
+					this.setState({
+						selectedCategories: clone
+					});
 
-				this.props.onChangeCategories(clone);
-			}
-		});
+					this.props.onChangeCategories(clone);
+				}
+			});
+		} else {
+			$.ajax({
+				method: 'POST',
+				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/category/' + this.state.editingModalCategory.categoryId,
+				contentType: 'application/json',
+				data: JSON.stringify({
+					...category
+				}),
+				success: data => {
+					const original = [...this.props.categories];
+					original[original.findIndex(category => category.categryId === this.state.editingModalCategory.categoryId)] = data;
+					this.props.onUpdateCategories(original);
+
+					this.setState({
+						editingModalCategory: null
+					});
+				}
+			});
+		}
 
 		this.onHideCreateCategory();
 	}
@@ -164,18 +186,11 @@ export default class CircuitEditorInspector extends React.Component {
 	render() {
 		return (
 			<>
-				<Modal show={this.state.showCreateCategory} onHide={this.onHideCreateCategory}>
-					<Modal.Header>
-						<Modal.Title>Create Category</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<p>Please enter the name of the new category.</p>
-						<Form.Control type="text" value={this.state.createCategoryName} onChange={this.onChangeCategoryName} placeholder="category name" />
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="success" onClick={this.createCategory}>Create</Button>
-					</Modal.Footer>
-				</Modal>
+				<InspectorCategoryModal
+					show={this.state.showCreateCategory}
+					category={this.state.editingModalCategory}
+					onHide={this.onHideCreateCategory}
+					onCreateCategory={this.createCategory} />
 				<div className="inspector-menu">
 					<Row className="inspector-header">
 						<Col md={{ span: 12 }}>

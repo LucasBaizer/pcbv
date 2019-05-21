@@ -2,6 +2,7 @@ import React from 'react';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCamera } from '@fortawesome/free-solid-svg-icons';
+import CenteredSpinner from '../components/CenteredSpinner';
 import Api from '../../Api';
 import './CreatePCB.css';
 
@@ -116,7 +117,9 @@ export default class CreatePCB extends React.Component {
 		return (
 			<>
 				{this.state.loading ? (
-					<div className="loading-overlay" />
+					<div className="loading-overlay">
+						<CenteredSpinner size={150} />
+					</div>
 				): (null)}
 				<Container className="create-container">
 					<Row>

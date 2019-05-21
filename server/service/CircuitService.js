@@ -871,15 +871,15 @@ exports.updateCircuitCategory = function (circuitId, categoryId, body) {
 		} else {
 			if (body.titleTags !== undefined && body.titleTags.length > 0) {
 				await sql.query('DELETE FROM CategoryTags WHERE CategoryID=? AND TagType=0', categoryId);
-				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [[body.titleTags.map(tag => [categoryId, tag, 0])]]);
+				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [body.titleTags.map(tag => [categoryId, tag, 0])]);
 			}
 			if (body.descriptionTags !== undefined && body.descriptionTags.length > 0) {
 				await sql.query('DELETE FROM CategoryTags WHERE CategoryID=? AND TagType=1', categoryId);
-				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [[body.descriptionTags.map(tag => [categoryId, tag, 1])]]);
+				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [body.descriptionTags.map(tag => [categoryId, tag, 1])]);
 			}
 			if (body.designatorTags !== undefined && body.designatorTags.length > 0) {
 				await sql.query('DELETE FROM CategoryTags WHERE CategoryID=? AND TagType=2', categoryId);
-				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [[body.designatorTags.map(tag => [categoryId, tag, 2])]]);
+				await sql.query('INSERT INTO CategoryTags (CategoryID, TagContent, TagType) VALUES ?', [body.designatorTags.map(tag => [categoryId, tag, 2])]);
 			}
 
 			resolve(body);
