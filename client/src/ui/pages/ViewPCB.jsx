@@ -28,6 +28,8 @@ export default class ViewPCB extends React.Component {
 			this.setState({
 				circuit: response.body
 			});
+		}).catch(() => {
+			this.props.history.push('/404');
 		});
 
 		this.onEditorLoaded = this.onEditorLoaded.bind(this);
