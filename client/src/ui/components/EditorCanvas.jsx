@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { ButtonGroup, Button } from 'react-bootstrap';
 import Api from '../../Api';
 import './EditorCanvas.css';
 
@@ -499,16 +500,15 @@ export default class EditorCanvas extends React.Component {
 						onMouseUpCapture={this.onMouseUp}
 						onMouseMoveCapture={this.onMouseMove}
 						onWheelCapture={this.onScroll}
-						/*onContextMenu={this.onRightClick}*/ />
-					{/*<ButtonGroup style={{
+						onContextMenu={this.onRightClick} />
+					<ButtonGroup style={{
 						visibility: this.state.contextMenuX === -1 ? 'hidden' : 'visible',
 						position: 'fixed',
 						left: this.state.contextMenuX,
 						top: this.state.contextMenuY
 					}} className="editor-context-menu" vertical={true}>
-						<Button variant="light" onClick={() => this.onContextMenuClick('component')}>New Component</Button>
 						<Button variant="light" onClick={() => this.onContextMenuClick('subCircuit')}>New Subcircuit</Button>
-					</ButtonGroup>*/}
+					</ButtonGroup>
 				</>
 			);
 		} else {

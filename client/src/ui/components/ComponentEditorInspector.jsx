@@ -24,8 +24,16 @@ export default class ComponentEditorInspector extends React.Component {
 	}
 
 	componentDidMount() {
-		if (!this.state.component.name) {
-			this.nameInput.focus();
+		if (!this.state.component.designator) {
+			if(!this.nameInput) {
+				setTimeout(() => {
+					if(this.nameInput) {
+						this.designatorInput.focus();
+					}
+				}, 100);
+			} else {
+				this.designatorInput.focus();
+			}
 		}
 	}
 
@@ -227,12 +235,12 @@ export default class ComponentEditorInspector extends React.Component {
 					<Col md={{ span: 10, offset: 1 }}>
 						<Form>
 							<Form.Group>
-								<Form.Label>Component Name</Form.Label>
-								<Form.Control type="text" value={this.state.component.name} placeholder="New Component" onChange={this.onChangeComponentName} ref={nameInput => this.nameInput = nameInput} />
+								<Form.Label>Designator</Form.Label>
+								<Form.Control type="text" value={this.state.component.designator} placeholder="X99" onChange={this.onChangeDesignator} ref={designatorInput => this.designatorInput = designatorInput} />
 							</Form.Group>
 							<Form.Group>
-								<Form.Label>Designator</Form.Label>
-								<Form.Control type="text" value={this.state.component.designator} placeholder="X99" onChange={this.onChangeDesignator} />
+								<Form.Label>Component Name</Form.Label>
+								<Form.Control type="text" value={this.state.component.name} placeholder="New Component" onChange={this.onChangeComponentName} />
 							</Form.Group>
 							<Form.Group>
 								<Form.Label>Description</Form.Label>

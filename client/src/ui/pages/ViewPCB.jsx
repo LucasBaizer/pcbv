@@ -18,7 +18,7 @@ export default class ViewPCB extends React.Component {
 			currentSide: 'front',
 			mode: 'edit',
 			selectedComponent: null,
-			componentMode: 'name',
+			componentMode: 'designator',
 			showSubCircuits: true
 		};
 
@@ -133,8 +133,8 @@ export default class ViewPCB extends React.Component {
 								</Col>
 								<Col md={{ span: 3 }}>
 									<ButtonGroup toggle={true}>
-										<Button variant={this.state.componentMode === 'name' ? 'primary' : 'light'} onClick={() => this.onComponentModeChange('name')}>Name</Button>
 										<Button variant={this.state.componentMode === 'designator' ? 'primary' : 'light'} onClick={() => this.onComponentModeChange('designator')}>Designator</Button>
+										<Button variant={this.state.componentMode === 'name' ? 'primary' : 'light'} onClick={() => this.onComponentModeChange('name')}>Name</Button>
 									</ButtonGroup>
 								</Col>
 								<Col md={{ span: 2 }}>
