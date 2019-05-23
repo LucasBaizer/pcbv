@@ -44,6 +44,7 @@ export default class EditorInspector extends React.Component {
 					ref={circuitEditorInspector => this.circuitEditorInspector = circuitEditorInspector}
 					circuit={this.props.circuit}
 					categories={this.state.categories}
+					searchText={this.props.searchText}
 					onChangeCategories={this.props.onChangeCategories}
 					onUpdateCategories={this.props.onUpdateCategories}
 					onChangeSearchText={this.props.onChangeSearchText}

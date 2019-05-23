@@ -39,7 +39,8 @@ export default class EditorCanvas extends React.Component {
 			redrawCallback: null,
 			redrawComponent: -1,
 			deltaX: 0,
-			deltaY: 0
+			deltaY: 0,
+			drawingSubCircuit: false
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
@@ -151,6 +152,23 @@ export default class EditorCanvas extends React.Component {
 		});
 	}
 
+	isComponentEligible(component) {
+		const searchTextRegex = new RegExp(this.state.searchText, 'i');
+
+		if (this.state.selectedCategories.indexOf(component.category.categoryId) === -1) {
+			return false;
+		}
+		if (this.state.redrawComponent === component.componentId) {
+			return false;
+		}
+		if (this.state.searchText !== '') {
+			if (!searchTextRegex.test(component.name) && !searchTextRegex.test(component.description) && !searchTextRegex.test(component.designator)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	onMouseDown(e) {
 		const rect = $('#editor-canvas')[0].getBoundingClientRect();
 		this.setState({
@@ -188,41 +206,45 @@ export default class EditorCanvas extends React.Component {
 				h = Math.abs(h);
 			}
 
-			const component = {
-				documentationUrl: '',
-				bounds: {
-					x: x * increaseX / this.state.scaleFactor - this.state.viewerOffsetX,
-					y: y * increaseY / this.state.scaleFactor - this.state.viewerOffsetY,
-					width: w * increaseX / this.state.scaleFactor,
-					height: h * increaseY / this.state.scaleFactor
-				},
-				name: '',
-				description: '',
-				designator: '',
-				categoryId: noneCategory.categoryId,
-				category: noneCategory
-			};
+			if (!this.state.drawingSubCircuit) {
+				const component = {
+					documentationUrl: '',
+					bounds: {
+						x: x * increaseX / this.state.scaleFactor - this.state.viewerOffsetX,
+						y: y * increaseY / this.state.scaleFactor - this.state.viewerOffsetY,
+						width: w * increaseX / this.state.scaleFactor,
+						height: h * increaseY / this.state.scaleFactor
+					},
+					name: '',
+					description: '',
+					designator: '',
+					categoryId: noneCategory.categoryId,
+					category: noneCategory
+				};
 
-			if (this.state.redrawCallback !== null) {
-				this.state.redrawCallback(component.bounds);
+				if (this.state.redrawCallback !== null) {
+					this.state.redrawCallback(component.bounds);
+				} else {
+					$.ajax({
+						method: 'POST',
+						url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
+						contentType: 'application/json',
+						data: JSON.stringify(component),
+						success: data => {
+							const clone = [...this.state.components];
+							clone[this.state.components.length - 1] = data;
+							this.setState({
+								components: clone,
+								selectedComponentId: data.componentId
+							});
+							this.props.onComponentSelected(data);
+						}
+					});
+
+					this.state.components.push(component);
+				}
 			} else {
-				$.ajax({
-					method: 'POST',
-					url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
-					contentType: 'application/json',
-					data: JSON.stringify(component),
-					success: data => {
-						const clone = [...this.state.components];
-						clone[this.state.components.length - 1] = data;
-						this.setState({
-							components: clone,
-							selectedComponentId: data.componentId
-						});
-						this.props.onComponentSelected(data);
-					}
-				});
 
-				this.state.components.push(component);
 			}
 		} else if (!this.state.mouseMoved) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
@@ -231,6 +253,10 @@ export default class EditorCanvas extends React.Component {
 
 			const backwardsSort = [...this.state.components].sort((a, b) => b.componentId - a.componentId);
 			for (const component of backwardsSort) {
+				if (!this.isComponentEligible(component)) {
+					continue;
+				}
+
 				const px = e.pageX - rect.left - 20;
 				const py = e.pageY - rect.top - 20;
 				const x = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor;
@@ -262,7 +288,8 @@ export default class EditorCanvas extends React.Component {
 			drawComponentX: -1,
 			drawComponentY: -1,
 			deltaX: 0,
-			deltaY: 0
+			deltaY: 0,
+			drawingSubCircuit: false
 		};
 		if (this.props.mode === 'edit' && e.button === 0) {
 			newState = {
@@ -328,15 +355,19 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	onContextMenuClick(button) {
-		this.setState({
+		const state = {
 			contextMenuX: -1,
 			contextMenuY: -1
-		});
+		};
+		if (button === 'subCircuit') {
+			state.drawingSubCircuit = true;
+		}
+		this.setState(state);
 	}
 
 	onScroll(e) {
 		const increase = -e.deltaY / 500;
-		const newScale = this.clamp(this.state.scaleFactor + increase, 1, 5);
+		const newScale = this.clamp(this.state.scaleFactor + increase, 1, this.state.currentImage.width / this.state.canvasWidth);
 		const changeX = (this.state.currentImage.width / this.state.scaleFactor - this.state.currentImage.width / newScale) / 2;
 		const changeY = (this.state.currentImage.height / this.state.scaleFactor - this.state.currentImage.height / newScale) / 2;
 		const offsets = this.getRescaleOffsets(this.state.viewerOffsetX - changeX, this.state.viewerOffsetY - changeY, newScale);
@@ -407,18 +438,9 @@ export default class EditorCanvas extends React.Component {
 
 					ctx.strokeStyle = '#000000';
 
-					const searchTextRegex = new RegExp(this.state.searchText, 'i');
 					for (const component of this.state.components) {
-						if (this.state.selectedCategories.indexOf(component.category.categoryId) === -1) {
+						if (!this.isComponentEligible(component)) {
 							continue;
-						}
-						if (this.state.redrawComponent === component.componentId) {
-							continue;
-						}
-						if (this.state.searchText !== '') {
-							if (!searchTextRegex.test(component.name) && !searchTextRegex.test(component.description) && !searchTextRegex.test(component.designator)) {
-								continue;
-							}
 						}
 
 						const rgb = this.hexToRgb(component.category.color);

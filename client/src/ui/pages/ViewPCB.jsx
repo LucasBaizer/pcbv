@@ -19,7 +19,8 @@ export default class ViewPCB extends React.Component {
 			mode: 'edit',
 			selectedComponent: null,
 			componentMode: 'designator',
-			showSubCircuits: true
+			showSubCircuits: true,
+			searchText: ''
 		};
 
 		Api.api.circuit.getCircuit({
@@ -114,6 +115,10 @@ export default class ViewPCB extends React.Component {
 
 	onChangeSearchText(text) {
 		this.editorCanvas.updateSearchText(text);
+
+		this.setState({
+			searchText: text
+		});
 	}
 
 	render() {
@@ -163,6 +168,7 @@ export default class ViewPCB extends React.Component {
 								mode={this.state.mode}
 								circuit={this.state.circuit}
 								component={this.state.selectedComponent}
+								searchText={this.state.searchText}
 								onComponentUpdate={this.onComponentUpdate}
 								onChangeCategories={this.onChangeCategories}
 								onUpdateCategories={this.onUpdateCategories}

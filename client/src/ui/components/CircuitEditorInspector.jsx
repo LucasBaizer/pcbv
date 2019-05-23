@@ -15,7 +15,6 @@ export default class CircuitEditorInspector extends React.Component {
 			selectedCategories: this.props.categories.map(category => category.categoryId),
 			editingCategory: -1,
 			editingModalCategory: null,
-			searchText: '',
 			showSubCircuits: true
 		};
 
@@ -139,10 +138,6 @@ export default class CircuitEditorInspector extends React.Component {
 	}
 
 	onChangeSearchText(e) {
-		this.setState({
-			searchText: e.target.value
-		});
-
 		this.props.onChangeSearchText(e.target.value);
 	}
 
@@ -223,14 +218,14 @@ export default class CircuitEditorInspector extends React.Component {
 								</Form.Group>
 								<Form.Group>
 									<Form.Label>Filter Components</Form.Label>
-									<Form.Control type="text" value={this.state.searchText} onChange={this.onChangeSearchText} placeholder="search names or descriptions..." />
+									<Form.Control type="text" value={this.props.searchText} onChange={this.onChangeSearchText} placeholder="search names or descriptions..." />
 								</Form.Group>
 								<Form.Group>
 									<Form.Label>
 										Filter Categories&nbsp;
 									<FontAwesomeIcon icon={faPlus} color="green" className="inspector-clickable-icon" onClick={this.onClickAddCategory} />
 									</Form.Label>
-									<ListGroup>
+									<ListGroup className="inspector-category-list">
 										{this.props.categories.map(category => (
 											<ListGroup.Item
 												key={category.categoryId}

@@ -25,9 +25,9 @@ export default class ComponentEditorInspector extends React.Component {
 
 	componentDidMount() {
 		if (!this.state.component.designator) {
-			if(!this.nameInput) {
+			if(!this.designatorInput) {
 				setTimeout(() => {
-					if(this.nameInput) {
+					if(this.designatorInput) {
 						this.designatorInput.focus();
 					}
 				}, 100);
@@ -47,8 +47,8 @@ export default class ComponentEditorInspector extends React.Component {
 				component: this.props.component,
 				timeout: null
 			}, () => {
-				if (!this.state.component.name) {
-					this.nameInput.focus();
+				if (!this.state.component.designator) {
+					this.designatorInput.focus();
 				}
 			});
 		}

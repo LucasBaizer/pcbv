@@ -20,6 +20,7 @@ CREATE TABLE SubCircuits (
 	Image LONGBLOB,
 	IsFront BOOLEAN,
 	ImageType VARCHAR(4),
+	ImageRotation INT,
 
 	FOREIGN KEY (ParentCircuitID)
 		REFERENCES Circuits(CircuitID)

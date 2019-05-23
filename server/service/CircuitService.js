@@ -362,7 +362,8 @@ exports.createSubCircuit = function (circuitId, body, side) {
 			RectX: body.bounds.x,
 			RectY: body.bounds.y,
 			RectWidth: body.bounds.width,
-			RectHeight: body.bounds.height
+			RectHeight: body.bounds.height,
+			ImageRotation: body.rotation
 		};
 		if (body.subCircuitId || typeof body.subCircuitId === 'number') {
 			data['SubCircuitID'] = body.subCircuitId;
@@ -786,7 +787,7 @@ exports.getSubCircuit = function (circuitId, subCircuitId) {
 		if (circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const subCircuits = await sql.query('SELECT Image, ImageType, RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
+			const subCircuits = await sql.query('SELECT Image, ImageType, RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID, ImageRotation FROM SubCircuits WHERE ParentCircuitID=? AND SubCircuitID=?', [circuitId, subCircuitId]);
 			if (subCircuits.length === 0) {
 				resolve(writer.respondWithCode(404));
 			} else {
@@ -800,7 +801,8 @@ exports.getSubCircuit = function (circuitId, subCircuitId) {
 						y: circuit['RectY'],
 						width: circuit['RectWidth'],
 						height: circuit['RectHeight']
-					}
+					},
+					rotation: circuit['ImageRotation']
 				})));
 			}
 		}
@@ -822,7 +824,7 @@ exports.getSubCircuits = function (circuitId, side) {
 		if (circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const subCircuits = await sql.query('SELECT RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
+			const subCircuits = await sql.query('SELECT RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID, ImageRotation FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
 			if (subCircuits.length === 0) {
 				resolve([]);
 			} else {
@@ -834,7 +836,8 @@ exports.getSubCircuits = function (circuitId, side) {
 						y: circuit['RectY'],
 						width: circuit['RectWidth'],
 						height: circuit['RectHeight']
-					}
+					},
+					rotation: circuit['ImageRotation']
 				})));
 			}
 		}

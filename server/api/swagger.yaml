@@ -603,6 +603,15 @@ definitions:
         enum:
         - "front"
         - "back"
+        example: "front"
+      rotation:
+        type: "integer"
+        enum:
+        - "0"
+        - "90"
+        - "-90"
+        - "180"
+        example: "90"
     example:
       image: "abcdef=="
       side: "front"

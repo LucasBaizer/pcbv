@@ -92,3 +92,8 @@
 	width: 100%;
 	cursor: pointer;
 }
+
+.inspector-category-list {
+	max-height: 400px;
+	overflow-y: scroll;
+}
