@@ -18,6 +18,7 @@ export default class ViewPCB extends React.Component {
 			currentSide: 'front',
 			mode: 'edit',
 			selectedComponent: null,
+			selectedSubCircuit: null,
 			componentMode: 'designator',
 			showSubCircuits: true,
 			searchText: ''
@@ -38,6 +39,7 @@ export default class ViewPCB extends React.Component {
 		this.onModeChange = this.onModeChange.bind(this);
 		this.onComponentModeChange = this.onComponentModeChange.bind(this);
 		this.onComponentSelected = this.onComponentSelected.bind(this);
+		this.onSubCircuitSelected = this.onSubCircuitSelected.bind(this);
 		this.onComponentUpdate = this.onComponentUpdate.bind(this);
 		this.onChangeCategories = this.onChangeCategories.bind(this);
 		this.onUpdateCategories = this.onUpdateCategories.bind(this);
@@ -87,6 +89,12 @@ export default class ViewPCB extends React.Component {
 	onComponentSelected(component) {
 		this.setState({
 			selectedComponent: component
+		});
+	}
+
+	onSubCircuitSelected(subCircuit) {
+		this.setState({
+			selectedSubCircuit: subCircuit
 		});
 	}
 
@@ -160,7 +168,8 @@ export default class ViewPCB extends React.Component {
 								componentMode={this.state.componentMode}
 								showSubCircuits={this.state.showSubCircuits}
 								onLoad={this.onEditorLoaded}
-								onComponentSelected={this.onComponentSelected} />
+								onComponentSelected={this.onComponentSelected}
+								onSubCircuitSelected={this.onSubCircuitSelected} />
 						</Col>
 						<Col md={{ span: 3 }} className="pcb-right-pane">
 							<EditorInspector
@@ -168,6 +177,7 @@ export default class ViewPCB extends React.Component {
 								mode={this.state.mode}
 								circuit={this.state.circuit}
 								component={this.state.selectedComponent}
+								subCircuit={this.state.selectedSubCircuit}
 								searchText={this.state.searchText}
 								onComponentUpdate={this.onComponentUpdate}
 								onChangeCategories={this.onChangeCategories}

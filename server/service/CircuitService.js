@@ -352,7 +352,7 @@ exports.createSubCircuit = function (circuitId, body, side) {
 		await sql.beginTransaction();
 		let sqlSuccess = false;
 
-		const buffer = Buffer.from(body.image, 'base64');
+		const buffer = body.image === null ? null : Buffer.from(body.image, 'base64');
 		const data = {
 			Image: buffer,
 			ImageType: body.imageType,
@@ -380,7 +380,9 @@ exports.createSubCircuit = function (circuitId, body, side) {
 
 			resolve({
 				...body,
-				subCircuitId: id
+				subCircuitId: id,
+				side: side,
+				parentCircuitId: circuitId
 			});
 		}
 
@@ -791,7 +793,8 @@ exports.getSubCircuit = function (circuitId, subCircuitId) {
 			if (subCircuits.length === 0) {
 				resolve(writer.respondWithCode(404));
 			} else {
-				resolve(subCircuits.map(circuit => ({
+				const circuit = subCircuits[0];
+				resolve({
 					image: circuit['Image'],
 					imageType: circuit['ImageType'],
 					parentCircuitId: circuit['ParentCircuitID'],
@@ -803,7 +806,7 @@ exports.getSubCircuit = function (circuitId, subCircuitId) {
 						height: circuit['RectHeight']
 					},
 					rotation: circuit['ImageRotation']
-				})));
+				});
 			}
 		}
 		sql.end();
@@ -824,7 +827,7 @@ exports.getSubCircuits = function (circuitId, side) {
 		if (circuits[0]['Count'] === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {
-			const subCircuits = await sql.query('SELECT RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID, ImageRotation FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
+			const subCircuits = await sql.query('SELECT Image, ImageType, RectX, RectY, RectWidth, RectHeight, ParentCircuitID, SubCircuitID, ImageRotation FROM SubCircuits WHERE ParentCircuitID=? AND IsFront=? AND IsRoot=FALSE', [circuitId, side === 'front']);
 			if (subCircuits.length === 0) {
 				resolve([]);
 			} else {

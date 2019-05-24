@@ -35,6 +35,7 @@ export default class EditorCanvas extends React.Component {
 			temporaryComponents: [],
 			currentSubCircuit: -1,
 			selectedComponentId: -1,
+			selectedSubCircuitId: -1,
 			searchText: '',
 			redrawCallback: null,
 			redrawComponent: -1,
@@ -187,6 +188,7 @@ export default class EditorCanvas extends React.Component {
 
 	onMouseUp(e) {
 		let changedSelectedComponent = false;
+		let changedSelectedSubCircuit = false;
 		if (this.props.mode === 'edit' && (Math.abs(this.state.drawComponentX) > this.state.canvasWidth / 30 && Math.abs(this.state.drawComponentY) > this.state.canvasHeight / 30)) {
 			const increaseX = this.state.currentImage.width / this.state.canvasWidth;
 			const increaseY = this.state.currentImage.height / this.state.canvasHeight;
@@ -206,15 +208,17 @@ export default class EditorCanvas extends React.Component {
 				h = Math.abs(h);
 			}
 
+			const bounds = {
+				x: x * increaseX / this.state.scaleFactor - this.state.viewerOffsetX,
+				y: y * increaseY / this.state.scaleFactor - this.state.viewerOffsetY,
+				width: w * increaseX / this.state.scaleFactor,
+				height: h * increaseY / this.state.scaleFactor
+			};
+
 			if (!this.state.drawingSubCircuit) {
 				const component = {
 					documentationUrl: '',
-					bounds: {
-						x: x * increaseX / this.state.scaleFactor - this.state.viewerOffsetX,
-						y: y * increaseY / this.state.scaleFactor - this.state.viewerOffsetY,
-						width: w * increaseX / this.state.scaleFactor,
-						height: h * increaseY / this.state.scaleFactor
-					},
+					bounds: bounds,
 					name: '',
 					description: '',
 					designator: '',
@@ -244,7 +248,27 @@ export default class EditorCanvas extends React.Component {
 					this.state.components.push(component);
 				}
 			} else {
+				const subCircuit = {
+					image: null,
+					bounds: bounds,
+					imageType: null
+				};
 
+				$.ajax({
+					method: 'POST',
+					url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit?side=' + this.props.side,
+					contentType: 'application/json',
+					data: JSON.stringify(subCircuit),
+					success: data => {
+						const clone = [...this.state.subCircuits];
+						clone[clone.length - 1] = data;
+						this.setState({
+							subCircuits: clone
+						});
+					}
+				});
+
+				this.state.subCircuits.push(subCircuit);
 			}
 		} else if (!this.state.mouseMoved) {
 			const rect = $('#editor-canvas')[0].getBoundingClientRect();
@@ -252,13 +276,14 @@ export default class EditorCanvas extends React.Component {
 			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
 
 			const backwardsSort = [...this.state.components].sort((a, b) => b.componentId - a.componentId);
+
+			const px = e.pageX - rect.left - 20;
+			const py = e.pageY - rect.top - 20;
+			let lookAtSubCircuits = true;
 			for (const component of backwardsSort) {
 				if (!this.isComponentEligible(component)) {
 					continue;
 				}
-
-				const px = e.pageX - rect.left - 20;
-				const py = e.pageY - rect.top - 20;
 				const x = (this.state.viewerOffsetX + component.bounds.x) * widthRatio * this.state.scaleFactor;
 				const y = (this.state.viewerOffsetY + component.bounds.y) * heightRatio * this.state.scaleFactor;
 				const w = component.bounds.width * widthRatio * this.state.scaleFactor;
@@ -266,6 +291,7 @@ export default class EditorCanvas extends React.Component {
 
 				if (px > x && px < x + w && py > y && py < y + h) {
 					if (this.state.selectedComponentId === component.componentId) {
+						lookAtSubCircuits = false;
 						break;
 					}
 					changedSelectedComponent = true;
@@ -273,7 +299,31 @@ export default class EditorCanvas extends React.Component {
 						selectedComponentId: component.componentId
 					});
 					this.props.onComponentSelected(component);
+					lookAtSubCircuits = false;
 					break;
+				}
+			}
+
+			if (lookAtSubCircuits && this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
+				const backwardsSubCircuits = [...this.state.subCircuits].sort((a, b) => b.subCircuitId - a.subCircuitId);
+
+				for (const subCircuit of backwardsSubCircuits) {
+					const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
+					const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
+					const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
+					const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
+
+					if (px > x && px < x + w && py > y && py < y + h) {
+						if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
+							break;
+						}
+						changedSelectedSubCircuit = true;
+						this.setState({
+							selectedSubCircuitId: subCircuit.subCircuitId
+						});
+						this.props.onSubCircuitSelected(subCircuit);
+						break;
+					}
 				}
 			}
 		}
@@ -301,6 +351,10 @@ export default class EditorCanvas extends React.Component {
 		if (!changedSelectedComponent && !this.state.redrawCallback) {
 			newState.selectedComponentId = -1;
 			this.props.onComponentSelected(null);
+		}
+		if (!changedSelectedSubCircuit) {
+			newState.selectedSubCircuitId = -1;
+			this.props.onSubCircuitSelected(null);
 		}
 		this.setState(newState);
 	}
@@ -487,7 +541,11 @@ export default class EditorCanvas extends React.Component {
 
 					if (this.props.showSubCircuits) {
 						for (const subCircuit of this.state.subCircuits) {
-							ctx.fillStyle = 'rgb(127, 127, 127, 0.5)';
+							if(this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
+								ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+							} else {
+								ctx.fillStyle = 'rgb(127, 127, 127, 0.5)';
+							}
 							ctx.fillRect(
 								(this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor,
 								(this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor,

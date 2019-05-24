@@ -1,8 +1,9 @@
 import React from 'react';
 import ComponentEditorInspector from './ComponentEditorInspector';
+import CircuitEditorInspector from './CircuitEditorInspector';
+import SubCircuitEditorInspector from './SubCircuitEditorInspector';
 import Api from '../../Api';
 import './EditorInspector.css';
-import CircuitEditorInspector from './CircuitEditorInspector';
 
 export default class EditorInspector extends React.Component {
 	constructor(props) {
@@ -38,7 +39,23 @@ export default class EditorInspector extends React.Component {
 					<h3 className="inspector-default-text">Loading...</h3>
 				</div>
 			);
-		} else if (this.props.component === null) {
+		} else if (this.props.component !== null) {
+			return (
+				<ComponentEditorInspector
+					mode={this.props.mode}
+					circuit={this.props.circuit}
+					component={this.props.component}
+					categories={this.state.categories}
+					onComponentUpdate={this.props.onComponentUpdate} />
+			);
+		} else if(this.props.subCircuit !== null) {
+			return (
+				<SubCircuitEditorInspector
+					mode={this.props.mode}
+					circuit={this.props.circuit}
+					subCircuit={this.props.subCircuit} />
+			);
+		} else {
 			return (
 				<CircuitEditorInspector
 					ref={circuitEditorInspector => this.circuitEditorInspector = circuitEditorInspector}
@@ -49,15 +66,6 @@ export default class EditorInspector extends React.Component {
 					onUpdateCategories={this.props.onUpdateCategories}
 					onChangeSearchText={this.props.onChangeSearchText}
 					onChangeShowSubCircuits={this.props.onChangeShowSubCircuits} />
-			);
-		} else {
-			return (
-				<ComponentEditorInspector
-					mode={this.props.mode}
-					circuit={this.props.circuit}
-					component={this.props.component}
-					categories={this.state.categories}
-					onComponentUpdate={this.props.onComponentUpdate} />
 			);
 		}
 	}
