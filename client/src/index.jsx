@@ -12,6 +12,9 @@ import ApplicationNavbar from './ui/components/ApplicationNavbar';
 import './index.css';
 
 (async () => {
+	// DEV
+	Api.prefix = 'http://' + window.location.host.split(':')[0] + ':8080';
+
 	const client = await new SwaggerClient(Api.prefix + '/api-docs');
 	Api.api = client.apis;
 

@@ -53,7 +53,8 @@ export default class EditorInspector extends React.Component {
 				<SubCircuitEditorInspector
 					mode={this.props.mode}
 					circuit={this.props.circuit}
-					subCircuit={this.props.subCircuit} />
+					subCircuit={this.props.subCircuit}
+					onSubCircuitUpdate={this.props.onSubCircuitUpdate} />
 			);
 		} else {
 			return (

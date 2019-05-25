@@ -9,7 +9,7 @@
 	padding: 1rem;
 }
 
-#image-front, #image-back {
+#image, #image-front, #image-back {
 	position: relative;
 	width: 100%;
 	padding-top: 100%;
@@ -18,7 +18,7 @@
 	cursor: pointer;
 }
 
-#image-front>svg, #image-back>svg {
+#image>svg, #image-front>svg, #image-back>svg {
 	position: absolute;
 }
 

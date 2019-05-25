@@ -141,6 +141,19 @@ export default class EditorCanvas extends React.Component {
 		}
 	}
 
+	updateCurrentSubCircuit(subCircuit, type) {
+		const clone = [...this.state.subCircuits];
+		const index = clone.findIndex(value => value.subCircuitId === subCircuit.subCircuitId);
+
+		if (type === 'delete') {
+			clone.splice(index, 1);
+			this.setState({
+				subCircuits: clone,
+				selectedSubCircuitId: -1
+			});
+		} 
+	}
+
 	updateSearchText(text) {
 		this.setState({
 			searchText: text

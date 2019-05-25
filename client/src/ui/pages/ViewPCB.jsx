@@ -41,6 +41,7 @@ export default class ViewPCB extends React.Component {
 		this.onComponentSelected = this.onComponentSelected.bind(this);
 		this.onSubCircuitSelected = this.onSubCircuitSelected.bind(this);
 		this.onComponentUpdate = this.onComponentUpdate.bind(this);
+		this.onSubCircuitUpdate = this.onSubCircuitUpdate.bind(this);
 		this.onChangeCategories = this.onChangeCategories.bind(this);
 		this.onUpdateCategories = this.onUpdateCategories.bind(this);
 		this.onChangeSearchText = this.onChangeSearchText.bind(this);
@@ -112,6 +113,16 @@ export default class ViewPCB extends React.Component {
 		return this.editorCanvas.updateCurrentComponent(component, type);
 	}
 
+	onSubCircuitUpdate(subCircuit, type) {
+		if(type === 'delete') {
+			this.setState({
+				selectedSubCircuit: null
+			});
+		}
+
+		return this.editorCanvas.updateCurrentSubCircuit(subCircuit, type);
+	}
+
 	onChangeCategories(categories) {
 		this.editorCanvas.updateSelectedCategories(categories);
 	}
@@ -180,6 +191,7 @@ export default class ViewPCB extends React.Component {
 								subCircuit={this.state.selectedSubCircuit}
 								searchText={this.state.searchText}
 								onComponentUpdate={this.onComponentUpdate}
+								onSubCircuitUpdate={this.onSubCircuitUpdate}
 								onChangeCategories={this.onChangeCategories}
 								onUpdateCategories={this.onUpdateCategories}
 								onChangeSearchText={this.onChangeSearchText}
