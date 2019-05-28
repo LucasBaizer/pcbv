@@ -448,7 +448,7 @@ exports.createSubCircuitComponent = function (circuitId, subCircuitId, body) {
 					...body,
 					category: categories[0],
 					componentId: success.insertId,
-					subCircuitId: mainSub,
+					subCircuitId: subCircuitId,
 					circuitId: circuitId
 				};
 				delete newBody.categoryId;
@@ -572,7 +572,8 @@ exports.deleteSubCircuitComponent = function (circuitId, subCircuitId, component
 	return new Promise(async (resolve, reject) => {
 		const sql = await util.connect();
 		const query = `
-			DELETE FROM Components
+			DELETE Components
+			FROM Components
 			INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 			INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
 			WHERE Circuits.CircuitID=?
@@ -735,7 +736,7 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 			resolve(writer.respondWithCode(404));
 		} else {
 			const query = `
-				SELECT DocumentationUrl, Components.ComponentID, RectX, RectY, RectWidth, RectHeight, Components.Name as ComponentName, Designator, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
+				SELECT DocumentationUrl, Components.ComponentID, Components.RectX, Components.RectY, Components.RectWidth, Components.RectHeight, Components.Name as ComponentName, Designator, Components.SubCircuitID, Circuits.CircuitID, Description, Categories.Name as CategoryName, Categories.RgbColor, Categories.CategoryID, CategoryTags.TagContent, CategoryTags.TagType
 				FROM Components
 				INNER JOIN SubCircuits ON Components.SubCircuitID=SubCircuits.SubCircuitID
 				INNER JOIN Circuits ON SubCircuits.ParentCircuitID=Circuits.CircuitID
@@ -757,8 +758,8 @@ exports.getSubCircuitComponents = function (circuitId, subCircuitId) {
 						bounds: {
 							x: item['RectX'],
 							y: item['RectY'],
-							width: item['Width'],
-							height: item['Height']
+							width: item['RectWidth'],
+							height: item['RectHeight']
 						},
 						name: item['ComponentName'],
 						designator: item['Designator'],
@@ -795,7 +796,7 @@ exports.getSubCircuit = function (circuitId, subCircuitId) {
 			} else {
 				const circuit = subCircuits[0];
 				resolve({
-					image: circuit['Image'],
+					image: circuit['Image'] === null ? null : circuit['Image'].toString('base64'),
 					imageType: circuit['ImageType'],
 					parentCircuitId: circuit['ParentCircuitID'],
 					subCircuitId: circuit['SubCircuitID'],
@@ -929,6 +930,38 @@ exports.updateCircuitComponent = function (circuitId, componentId, body) {
 			data['Designator'] = body.designator;
 		}
 		const response = await sql.query(query, [data, circuitId, componentId]);
+		if (response.affectedRows === 0) {
+			resolve(writer.respondWithCode(404));
+		} else {
+			resolve(body);
+		}
+		sql.end();
+	});
+}
+
+exports.updateSubCircuit = function (circuitId, subCircuitId, body) {
+	return new Promise(async (resolve, reject) => {
+		const sql = await util.connect();
+		const query = `
+			UPDATE SubCircuits
+			SET ?
+			WHERE ParentCircuitID=?
+			AND SubCircuitID=?
+		`;
+		const data = {};
+		if (body.image !== undefined) {
+			data['Image'] = Buffer.from(body.image, 'base64');
+		}
+		if(body.imageType !== undefined) {
+			data['ImageType'] = body.imageType;
+		}
+		if (body.bounds !== undefined) {
+			data['RectX'] = body.bounds.x;
+			data['RectY'] = body.bounds.y;
+			data['RectWidth'] = body.bounds.width;
+			data['RectHeight'] = body.bounds.height;
+		}
+		const response = await sql.query(query, [data, circuitId, subCircuitId]);
 		if (response.affectedRows === 0) {
 			resolve(writer.respondWithCode(404));
 		} else {

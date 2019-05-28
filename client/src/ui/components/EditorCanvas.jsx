@@ -34,6 +34,8 @@ export default class EditorCanvas extends React.Component {
 			drawComponentY: 0,
 			temporaryComponents: [],
 			currentSubCircuit: -1,
+			currentSubCircuitImage: null,
+			currentSubCircuitImageType: null,
 			selectedComponentId: -1,
 			selectedSubCircuitId: -1,
 			searchText: '',
@@ -49,6 +51,8 @@ export default class EditorCanvas extends React.Component {
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.onScroll = this.onScroll.bind(this);
 		this.onRightClick = this.onRightClick.bind(this);
+		this.onDoubleClick = this.onDoubleClick.bind(this);
+		this.onKeyPress = this.onKeyPress.bind(this);
 	}
 
 	async componentDidUpdate(prevProps, prevState) {
@@ -99,8 +103,52 @@ export default class EditorCanvas extends React.Component {
 			components: components.body,
 			subCircuits: subCircuits.body,
 			categories: categories.body,
+			currentImage: null,
+			currentSubCircuit: -1,
+			currentSubCircuitImage: null,
+			currentSubCircuitImageType: null,
 			loaded: true
 		});
+	}
+
+	onKeyPress(e) {
+		e.preventDefault();
+
+		if (e.key === 'Escape') {
+			if (this.state.selectedComponentId !== -1) {
+				const component = this.state.components.filter(component => component.componentId === this.state.selectedComponentId)[0];
+				if(component.designator === '' && component.name === '') {
+					this.deleteCurrentComponent();
+				} else {
+					this.setState({
+						selectedComponentId: -1
+					});
+				}
+				
+				this.props.onComponentSelected(null);
+			}
+		} else if (e.key === 'Delete') {
+			if (this.state.selectedComponentId !== -1) {
+				this.deleteCurrentComponent();
+				this.props.onComponentSelected(null);
+			}
+		}
+	}
+	
+	deleteCurrentComponent() {
+		if (this.state.currentSubCircuit !== -1) {
+			Api.api.circuit.deleteSubCircuitComponent({
+				circuitId: this.props.circuit.circuitId,
+				subCircuitId: this.state.currentSubCircuit,
+				componentId: this.state.selectedComponentId
+			});
+		} else {
+			Api.api.circuit.deleteCircuitComponent({
+				circuitId: this.props.circuit.circuitId,
+				componentId: this.state.selectedComponentId
+			});
+		}
+		this.updateCurrentComponent(this.state.components.filter(component => component.componentId === this.state.selectedComponentId)[0], 'delete');
 	}
 
 	updateCategories(categories) {
@@ -151,7 +199,7 @@ export default class EditorCanvas extends React.Component {
 				subCircuits: clone,
 				selectedSubCircuitId: -1
 			});
-		} 
+		}
 	}
 
 	updateSearchText(text) {
@@ -201,7 +249,6 @@ export default class EditorCanvas extends React.Component {
 
 	onMouseUp(e) {
 		let changedSelectedComponent = false;
-		let changedSelectedSubCircuit = false;
 		if (this.props.mode === 'edit' && (Math.abs(this.state.drawComponentX) > this.state.canvasWidth / 30 && Math.abs(this.state.drawComponentY) > this.state.canvasHeight / 30)) {
 			const increaseX = this.state.currentImage.width / this.state.canvasWidth;
 			const increaseY = this.state.currentImage.height / this.state.canvasHeight;
@@ -242,9 +289,15 @@ export default class EditorCanvas extends React.Component {
 				if (this.state.redrawCallback !== null) {
 					this.state.redrawCallback(component.bounds);
 				} else {
+					let url;
+					if (this.state.currentSubCircuit === -1) {
+						url = Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side;
+					} else {
+						url = Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit/' + this.state.currentSubCircuit + '/component';
+					}
 					$.ajax({
 						method: 'POST',
-						url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component?side=' + this.props.side,
+						url: url,
 						contentType: 'application/json',
 						data: JSON.stringify(component),
 						success: data => {
@@ -252,9 +305,11 @@ export default class EditorCanvas extends React.Component {
 							clone[this.state.components.length - 1] = data;
 							this.setState({
 								components: clone,
-								selectedComponentId: data.componentId
+								selectedComponentId: data.componentId,
+								selectedSubCircuitId: -1
 							});
 							this.props.onComponentSelected(data);
+							this.props.onSubCircuitSelected(null);
 						}
 					});
 
@@ -292,7 +347,6 @@ export default class EditorCanvas extends React.Component {
 
 			const px = e.pageX - rect.left - 20;
 			const py = e.pageY - rect.top - 20;
-			let lookAtSubCircuits = true;
 			for (const component of backwardsSort) {
 				if (!this.isComponentEligible(component)) {
 					continue;
@@ -304,39 +358,16 @@ export default class EditorCanvas extends React.Component {
 
 				if (px > x && px < x + w && py > y && py < y + h) {
 					if (this.state.selectedComponentId === component.componentId) {
-						lookAtSubCircuits = false;
 						break;
 					}
 					changedSelectedComponent = true;
 					this.setState({
-						selectedComponentId: component.componentId
+						selectedComponentId: component.componentId,
+						selectedSubCircuitId: -1
 					});
 					this.props.onComponentSelected(component);
-					lookAtSubCircuits = false;
+					this.props.onSubCircuitSelected(null);
 					break;
-				}
-			}
-
-			if (lookAtSubCircuits && this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
-				const backwardsSubCircuits = [...this.state.subCircuits].sort((a, b) => b.subCircuitId - a.subCircuitId);
-
-				for (const subCircuit of backwardsSubCircuits) {
-					const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
-					const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
-					const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
-					const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
-
-					if (px > x && px < x + w && py > y && py < y + h) {
-						if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
-							break;
-						}
-						changedSelectedSubCircuit = true;
-						this.setState({
-							selectedSubCircuitId: subCircuit.subCircuitId
-						});
-						this.props.onSubCircuitSelected(subCircuit);
-						break;
-					}
 				}
 			}
 		}
@@ -364,10 +395,6 @@ export default class EditorCanvas extends React.Component {
 		if (!changedSelectedComponent && !this.state.redrawCallback) {
 			newState.selectedComponentId = -1;
 			this.props.onComponentSelected(null);
-		}
-		if (!changedSelectedSubCircuit) {
-			newState.selectedSubCircuitId = -1;
-			this.props.onSubCircuitSelected(null);
 		}
 		this.setState(newState);
 	}
@@ -412,13 +439,100 @@ export default class EditorCanvas extends React.Component {
 		];
 	}
 
+	async onDoubleClick(e) {
+		const rect = $('#editor-canvas')[0].getBoundingClientRect();
+		if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
+			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
+			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
+			const px = e.pageX - rect.left - 20;
+			const py = e.pageY - rect.top - 20;
+
+			const backwardsSubCircuits = [...this.state.subCircuits].sort((a, b) => b.subCircuitId - a.subCircuitId);
+
+			for (const subCircuit of backwardsSubCircuits) {
+				const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
+				const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
+				const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
+				const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
+
+				if (px > x && px < x + w && py > y && py < y + h) {
+					this.setState({
+						loading: true
+					});
+
+					const components = await Api.api.circuit.getSubCircuitComponents({
+						circuitId: this.props.circuit.circuitId,
+						subCircuitId: subCircuit.subCircuitId
+					});
+					const sc = await Api.api.circuit.getSubCircuit({
+						circuitId: this.props.circuit.circuitId,
+						subCircuitId: subCircuit.subCircuitId
+					});
+
+					this.setState({
+						components: components.body,
+						currentImage: null,
+						currentSubCircuit: subCircuit.subCircuitId,
+						currentSubCircuitImage: sc.body.image,
+						currentSubCircuitImageType: sc.body.imageType,
+						loading: false
+					});
+
+					this.props.onSubCircuitChanged(subCircuit.subCircuitId);
+				}
+			}
+		}
+	}
+
 	onRightClick(e) {
 		e.preventDefault();
 
-		this.setState({
-			contextMenuX: e.pageX,
-			contextMenuY: e.pageY
-		});
+		const rect = $('#editor-canvas')[0].getBoundingClientRect();
+		let changedSelectedSubCircuit = false;
+		let operated = false;
+		if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
+			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
+			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
+			const px = e.pageX - rect.left - 20;
+			const py = e.pageY - rect.top - 20;
+
+			const backwardsSubCircuits = [...this.state.subCircuits].sort((a, b) => b.subCircuitId - a.subCircuitId);
+
+			for (const subCircuit of backwardsSubCircuits) {
+				const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
+				const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
+				const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
+				const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
+
+				if (px > x && px < x + w && py > y && py < y + h) {
+					if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
+						operated = true;
+						break;
+					}
+					changedSelectedSubCircuit = true;
+					this.setState({
+						selectedSubCircuitId: subCircuit.subCircuitId
+					});
+					this.props.onSubCircuitSelected(subCircuit);
+					operated = true;
+					break;
+				}
+			}
+		}
+
+		if (!changedSelectedSubCircuit) {
+			this.setState({
+				selectedSubCircuitId: -1
+			});
+			this.props.onSubCircuitSelected(null);
+		}
+
+		if (!operated && this.state.currentSubCircuit === -1) {
+			this.setState({
+				contextMenuX: e.pageX,
+				contextMenuY: e.pageY
+			});
+		}
 	}
 
 	onContextMenuClick(button) {
@@ -480,7 +594,11 @@ export default class EditorCanvas extends React.Component {
 							currentImage: image
 						});
 					};
-					image.src = 'data:image/' + this.props.circuit.imageType + ';base64,' + (this.props.side === 'front' ? this.props.circuit.imageFront : this.props.circuit.imageBack);
+					if (this.state.currentSubCircuit !== -1) {
+						image.src = 'data:image/' + this.state.currentSubCircuitImageType + ';base64,' + this.state.currentSubCircuitImage;
+					} else {
+						image.src = 'data:image/' + this.props.circuit.imageType + ';base64,' + (this.props.side === 'front' ? this.props.circuit.imageFront : this.props.circuit.imageBack);
+					}
 				} else {
 					/**
 	  					@type {CanvasRenderingContext2D}
@@ -552,9 +670,9 @@ export default class EditorCanvas extends React.Component {
 						}
 					}
 
-					if (this.props.showSubCircuits) {
+					if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
 						for (const subCircuit of this.state.subCircuits) {
-							if(this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
+							if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
 								ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
 							} else {
 								ctx.fillStyle = 'rgb(127, 127, 127, 0.5)';
@@ -589,11 +707,14 @@ export default class EditorCanvas extends React.Component {
 				<>
 					<canvas
 						id="editor-canvas"
+						tabIndex="0"
 						onMouseDownCapture={this.onMouseDown}
 						onMouseUpCapture={this.onMouseUp}
 						onMouseMoveCapture={this.onMouseMove}
 						onWheelCapture={this.onScroll}
-						onContextMenu={this.onRightClick} />
+						onContextMenuCapture={this.onRightClick}
+						onDoubleClickCapture={this.onDoubleClick}
+						onKeyDown={this.onKeyPress} />
 					<ButtonGroup style={{
 						visibility: this.state.contextMenuX === -1 ? 'hidden' : 'visible',
 						position: 'fixed',

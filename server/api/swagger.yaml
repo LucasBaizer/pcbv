@@ -170,6 +170,38 @@ paths:
         404:
           description: "Either circuit or subcircuit do not exist"
       x-swagger-router-controller: "Circuit"
+    post:
+      tags:
+      - "circuit"
+      summary: "Updates image and basic information of a particular subcircuit of a circuit"
+      operationId: "updateSubCircuit"
+      parameters:
+      - name: "circuitId"
+        in: "path"
+        description: "GUID of the circuit"
+        required: true
+        type: "string"
+      - name: "subCircuitId"
+        in: "path"
+        description: "ID of the subcircuit"
+        required: true
+        type: "integer"
+      - name: "body"
+        in: "body"
+        description: "Data to update for the subcircuit"
+        required: true
+        schema:
+          $ref: '#/definitions/SubCircuit'
+      responses:
+        200:
+          description: "Successfully updated subcircuit"
+          schema:
+            $ref: '#/definitions/SubCircuit'
+        400:
+          description: "Invalid request data"
+        404:
+          description: "Either circuit or subcircuit do not exist"
+      x-swagger-router-controller: "Circuit"
     delete:
       tags:
       - "circuit"

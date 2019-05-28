@@ -208,6 +208,19 @@ module.exports.updateCircuitCategory = function updateCircuitCategory(req, res, 
 		});
 };
 
+module.exports.updateSubCircuit = function updateSubCircuit(req, res, next) {
+	var circuitId = req.swagger.params['circuitId'].value;
+	var subCircuitId = req.swagger.params['subCircuitId'].value;
+	var body = req.swagger.params['body'].value;
+	Circuit.updateSubCircuit(circuitId, subCircuitId, body)
+		.then(function (response) {
+			utils.writeJson(res, response);
+		})
+		.catch(function (response) {
+			utils.writeJson(res, response);
+		});
+};
+
 module.exports.updateCircuitComponent = function updateCircuitComponent(req, res, next) {
 	var circuitId = req.swagger.params['circuitId'].value;
 	var componentId = req.swagger.params['componentId'].value;

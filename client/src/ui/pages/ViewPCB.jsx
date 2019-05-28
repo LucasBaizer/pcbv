@@ -5,7 +5,7 @@ import CenteredSpinner from '../components/CenteredSpinner';
 import EditorCanvas from '../components/EditorCanvas';
 import EditorInspector from '../components/EditorInspector';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSyncAlt } from '@fortawesome/free-solid-svg-icons';
+import { faSyncAlt, faArrowAltCircleLeft } from '@fortawesome/free-solid-svg-icons';
 import './ViewPCB.css';
 
 export default class ViewPCB extends React.Component {
@@ -21,7 +21,8 @@ export default class ViewPCB extends React.Component {
 			selectedSubCircuit: null,
 			componentMode: 'designator',
 			showSubCircuits: true,
-			searchText: ''
+			searchText: '',
+			currentSubCircuit: null
 		};
 
 		Api.api.circuit.getCircuit({
@@ -46,6 +47,7 @@ export default class ViewPCB extends React.Component {
 		this.onUpdateCategories = this.onUpdateCategories.bind(this);
 		this.onChangeSearchText = this.onChangeSearchText.bind(this);
 		this.onChangeShowSubCircuits = this.onChangeShowSubCircuits.bind(this);
+		this.onSubCircuitChanged = this.onSubCircuitChanged.bind(this);
 	}
 
 	onChangeShowSubCircuits(show) {
@@ -63,12 +65,20 @@ export default class ViewPCB extends React.Component {
 	}
 
 	onFlipSides() {
-		this.setState({
-			currentSide: this.state.currentSide === 'front' ? 'back' : 'front',
-			loading: true
-		});
+		if (this.state.currentSubCircuit) {
+			this.editorCanvas.updateCurrentSide();
 
-		this.onChangeCategories(this.editorInspector.circuitEditorInspector.state.selectedCategories);
+			this.setState({
+				currentSubCircuit: null
+			});
+		} else {
+			this.setState({
+				currentSide: this.state.currentSide === 'front' ? 'back' : 'front',
+				loading: true
+			});
+
+			this.onChangeCategories(this.editorInspector.circuitEditorInspector.state.selectedCategories);
+		}
 	}
 
 	onModeChange(mode) {
@@ -91,11 +101,23 @@ export default class ViewPCB extends React.Component {
 		this.setState({
 			selectedComponent: component
 		});
+
+		if(component === null && this.editorCanvas.state.selectedComponentId !== -1) {
+			this.editorCanvas.setState({
+				selectedComponentId: -1
+			})
+		}
 	}
 
 	onSubCircuitSelected(subCircuit) {
 		this.setState({
 			selectedSubCircuit: subCircuit
+		});
+	}
+
+	onSubCircuitChanged(subCircuitId) {
+		this.setState({
+			currentSubCircuit: subCircuitId
 		});
 	}
 
@@ -114,7 +136,7 @@ export default class ViewPCB extends React.Component {
 	}
 
 	onSubCircuitUpdate(subCircuit, type) {
-		if(type === 'delete') {
+		if (type === 'delete') {
 			this.setState({
 				selectedSubCircuit: null
 			});
@@ -168,7 +190,7 @@ export default class ViewPCB extends React.Component {
 									</ButtonGroup>
 								</Col>
 								<Col md={{ span: 1 }}>
-									<FontAwesomeIcon icon={faSyncAlt} size="2x" onClick={this.onFlipSides} className="view-switch-icon" />
+									<FontAwesomeIcon icon={!this.state.currentSubCircuit ? faSyncAlt : faArrowAltCircleLeft} size="2x" onClick={this.onFlipSides} className="view-switch-icon" />
 								</Col>
 							</Row>
 							<EditorCanvas
@@ -180,7 +202,8 @@ export default class ViewPCB extends React.Component {
 								showSubCircuits={this.state.showSubCircuits}
 								onLoad={this.onEditorLoaded}
 								onComponentSelected={this.onComponentSelected}
-								onSubCircuitSelected={this.onSubCircuitSelected} />
+								onSubCircuitSelected={this.onSubCircuitSelected}
+								onSubCircuitChanged={this.onSubCircuitChanged} />
 						</Col>
 						<Col md={{ span: 3 }} className="pcb-right-pane">
 							<EditorInspector
@@ -189,8 +212,10 @@ export default class ViewPCB extends React.Component {
 								circuit={this.state.circuit}
 								component={this.state.selectedComponent}
 								subCircuit={this.state.selectedSubCircuit}
+								currentSubCircuit={this.state.currentSubCircuit}
 								searchText={this.state.searchText}
 								onComponentUpdate={this.onComponentUpdate}
+								onComponentSelected={this.onComponentSelected}
 								onSubCircuitUpdate={this.onSubCircuitUpdate}
 								onChangeCategories={this.onChangeCategories}
 								onUpdateCategories={this.onUpdateCategories}

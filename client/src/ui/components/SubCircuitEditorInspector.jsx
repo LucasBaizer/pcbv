@@ -72,6 +72,16 @@ export default class SubCircuitEditorInspector extends React.Component {
 				image: event.target.result.substring(event.target.result.indexOf(',') + 1)
 			};
 
+			$.ajax({
+				method: 'POST',
+				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit/' + this.state.subCircuit.subCircuitId,
+				contentType: 'application/json',
+				data: JSON.stringify({
+					image: subCircuit.image,
+					imageType: subCircuit.imageType
+				})
+			});
+
 			this.setState({
 				subCircuit: subCircuit
 			});
@@ -87,6 +97,7 @@ export default class SubCircuitEditorInspector extends React.Component {
 				</div>
 			);
 		}
+		console.log(this.state.imageWidth);
 		return (
 			<>
 				<div className="inspector-menu">
@@ -100,21 +111,20 @@ export default class SubCircuitEditorInspector extends React.Component {
 							<Form>
 								<Form.Group controlId="image">
 									<Form.Label>Subcircuit Image</Form.Label>
-									{this.state.subCircuit.image === null ? (
-										<div id="image" onClick={this.upload}>
-											<FontAwesomeIcon icon={faCamera} size="6x" />
-										</div>
-									) : (
-											<img className="upload-image" src={'data:image/' + this.state.subCircuit.imageType + ';base64,' + this.state.subCircuit.image} width={this.state.imageWidth} alt="subcircuit" onClick={this.upload} />
-										)}
+									<div id="image" onClick={this.upload} style={{
+										display: this.state.subCircuit.image === null ? 'block' : 'none'
+									}}>
+										<FontAwesomeIcon icon={faCamera} size="6x" />
+									</div>
+									<img className="upload-image" src={'data:image/' + this.state.subCircuit.imageType + ';base64,' + this.state.subCircuit.image} width={this.state.imageWidth - 30} alt="subcircuit" onClick={this.upload} />
 								</Form.Group>
 							</Form>
 						</Col>
 					</Row>
 					<Row>
-					<Col md={{ span: 10, offset: 1 }}>
-						<Button variant="danger" onClick={this.onClickDelete} className="inspector-delete-button">Delete</Button>
-					</Col>
+						<Col md={{ span: 10, offset: 1 }}>
+							<Button variant="danger" onClick={this.onClickDelete} className="inspector-delete-button">Delete</Button>
+						</Col>
 					</Row>
 				</div>
 				<input id="file-input" type="file" className="hidden-input" accept="image/x-png,image/gif,image/jpeg" onChange={this.onChangeFile} />

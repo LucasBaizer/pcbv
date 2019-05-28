@@ -44,9 +44,11 @@ export default class EditorInspector extends React.Component {
 				<ComponentEditorInspector
 					mode={this.props.mode}
 					circuit={this.props.circuit}
+					currentSubCircuit={this.props.currentSubCircuit}
 					component={this.props.component}
 					categories={this.state.categories}
-					onComponentUpdate={this.props.onComponentUpdate} />
+					onComponentUpdate={this.props.onComponentUpdate}
+					onComponentSelected={this.props.onComponentSelected} />
 			);
 		} else if(this.props.subCircuit !== null) {
 			return (

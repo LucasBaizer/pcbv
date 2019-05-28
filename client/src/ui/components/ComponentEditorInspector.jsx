@@ -21,13 +21,15 @@ export default class ComponentEditorInspector extends React.Component {
 		this.onChangeDocumentationUrl = this.onChangeDocumentationUrl.bind(this);
 		this.onClickDelete = this.onClickDelete.bind(this);
 		this.onClickMove = this.onClickMove.bind(this);
+		this.onKeyDownDesignator = this.onKeyDownDesignator.bind(this);
+		this.onKeyDown = this.onKeyDown.bind(this);
 	}
 
 	componentDidMount() {
 		if (!this.state.component.designator) {
-			if(!this.designatorInput) {
+			if (!this.designatorInput) {
 				setTimeout(() => {
-					if(this.designatorInput) {
+					if (this.designatorInput) {
 						this.designatorInput.focus();
 					}
 				}, 100);
@@ -181,19 +183,49 @@ export default class ComponentEditorInspector extends React.Component {
 	}
 
 	onClickDelete() {
-		Api.api.circuit.deleteCircuitComponent({
-			circuitId: this.props.circuit.circuitId,
-			componentId: this.state.component.componentId
-		});
+		if (!this.props.currentSubCircuit) {
+			Api.api.circuit.deleteCircuitComponent({
+				circuitId: this.props.circuit.circuitId,
+				componentId: this.state.component.componentId
+			});
+		} else {
+			Api.api.circuit.deleteSubCircuitComponent({
+				circuitId: this.props.circuit.circuitId,
+				subCircuitId: this.props.currentSubCircuit,
+				componentId: this.state.component.componentId
+			});
+		}
 
 		this.props.onComponentUpdate(this.state.component, 'delete');
 	}
 
+	onKeyDownDesignator(e) {
+		if(e.key === 'Escape' || e.key === 'Delete') {
+			if(this.state.component.designator === '' && this.state.component.name === '') {
+				this.onClickDelete();
+			} else if(e.key === 'Escape') {
+				this.props.onComponentSelected(null);
+			}
+		}
+	}
+
+	onKeyDown(e) {
+		if(e.key === 'Escape') {
+			this.props.onComponentSelected(null);
+		}
+	}
+
 	onClickMove() {
 		this.props.onComponentUpdate(this.state.component, 'move').then(bounds => {
+			let url;
+			if (!this.props.currentSubCircuit) {
+				url = '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + this.state.component.componentId;
+			} else {
+				url = '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit/' + this.props.currentSubCircuit + '/component/' + this.state.component.componentId;
+			}
 			$.ajax({
 				method: 'POST',
-				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + this.state.component.componentId,
+				url: Api.prefix + url,
 				contentType: 'application/json',
 				data: JSON.stringify({
 					bounds: bounds
@@ -212,9 +244,15 @@ export default class ComponentEditorInspector extends React.Component {
 	}
 
 	updateComponent(component) {
+		let url;
+		if (!this.props.currentSubCircuit) {
+			url = '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + this.state.component.componentId;
+		} else {
+			url = '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit/' + this.props.currentSubCircuit + '/component/' + this.state.component.componentId;
+		}
 		$.ajax({
 			method: 'POST',
-			url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/component/' + component.componentId,
+			url: Api.prefix + url,
 			contentType: 'application/json',
 			data: JSON.stringify(component)
 		});
@@ -236,15 +274,15 @@ export default class ComponentEditorInspector extends React.Component {
 						<Form>
 							<Form.Group>
 								<Form.Label>Designator</Form.Label>
-								<Form.Control type="text" value={this.state.component.designator} placeholder="X99" onChange={this.onChangeDesignator} ref={designatorInput => this.designatorInput = designatorInput} />
+								<Form.Control type="text" value={this.state.component.designator} placeholder="X99" onChange={this.onChangeDesignator} onKeyDown={this.onKeyDownDesignator} ref={designatorInput => this.designatorInput = designatorInput} />
 							</Form.Group>
 							<Form.Group>
 								<Form.Label>Component Name</Form.Label>
-								<Form.Control type="text" value={this.state.component.name} placeholder="New Component" onChange={this.onChangeComponentName} />
+								<Form.Control type="text" value={this.state.component.name} placeholder="New Component" onChange={this.onChangeComponentName} onKeyDown={this.onKeyDown} />
 							</Form.Group>
 							<Form.Group>
 								<Form.Label>Description</Form.Label>
-								<Form.Control as="textarea" value={this.state.component.description} rows={5} placeholder="a detailed description about what the part is for" onChange={this.onChangeDescription} />
+								<Form.Control as="textarea" value={this.state.component.description} rows={5} placeholder="a detailed description about what the part is for" onChange={this.onChangeDescription} onKeyDown={this.onKeyDown} />
 							</Form.Group>
 							<Form.Group>
 								<Form.Label>Category</Form.Label>
@@ -264,7 +302,7 @@ export default class ComponentEditorInspector extends React.Component {
 											</a>
 										</InputGroup.Text>
 									</InputGroup.Prepend>
-									<Form.Control type="text" value={this.state.component.documentationUrl} onChange={this.onChangeDocumentationUrl} placeholder="http://example.com" />
+									<Form.Control type="text" value={this.state.component.documentationUrl} onChange={this.onChangeDocumentationUrl} placeholder="http://example.com" onKeyDown={this.onKeyDown} />
 								</InputGroup>
 							</Form.Group>
 						</Form>
