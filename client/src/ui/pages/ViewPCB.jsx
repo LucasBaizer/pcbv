@@ -66,10 +66,20 @@ export default class ViewPCB extends React.Component {
 
 	onFlipSides() {
 		if (this.state.currentSubCircuit) {
-			this.editorCanvas.updateCurrentSide();
-
-			this.setState({
-				currentSubCircuit: null
+			this.editorCanvas.setState({
+				loadingDifferent: true,
+				scaleFactor: 1,
+				viewerOffsetX: 0,
+				viewerOffsetY: 0,
+				drawComponentY: 0
+			}, async () => {
+				await this.editorCanvas.updateCurrentSide();
+				this.editorCanvas.setState({
+					loadingDifferent: false
+				});
+				this.setState({
+					currentSubCircuit: null,
+				});
 			});
 		} else {
 			this.setState({

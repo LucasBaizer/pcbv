@@ -1,8 +1,8 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { ButtonGroup, Button } from 'react-bootstrap';
 import Api from '../../Api';
 import './EditorCanvas.css';
+import CenteredSpinner from './CenteredSpinner';
 
 /* global $ */
 export default class EditorCanvas extends React.Component {
@@ -43,7 +43,8 @@ export default class EditorCanvas extends React.Component {
 			redrawComponent: -1,
 			deltaX: 0,
 			deltaY: 0,
-			drawingSubCircuit: false
+			drawingSubCircuit: false,
+			loadingDifferent: false
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
@@ -117,14 +118,14 @@ export default class EditorCanvas extends React.Component {
 		if (e.key === 'Escape') {
 			if (this.state.selectedComponentId !== -1) {
 				const component = this.state.components.filter(component => component.componentId === this.state.selectedComponentId)[0];
-				if(component.designator === '' && component.name === '') {
+				if (component.designator === '' && component.name === '') {
 					this.deleteCurrentComponent();
 				} else {
 					this.setState({
 						selectedComponentId: -1
 					});
 				}
-				
+
 				this.props.onComponentSelected(null);
 			}
 		} else if (e.key === 'Delete') {
@@ -134,7 +135,7 @@ export default class EditorCanvas extends React.Component {
 			}
 		}
 	}
-	
+
 	deleteCurrentComponent() {
 		if (this.state.currentSubCircuit !== -1) {
 			Api.api.circuit.deleteSubCircuitComponent({
@@ -232,7 +233,7 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	onMouseDown(e) {
-		const rect = $('#editor-canvas')[0].getBoundingClientRect();
+		const rect = this.canvas.getBoundingClientRect();
 		this.setState({
 			isMouseDown: true,
 			currentMouseButton: e.button,
@@ -249,7 +250,7 @@ export default class EditorCanvas extends React.Component {
 
 	onMouseUp(e) {
 		let changedSelectedComponent = false;
-		if (this.props.mode === 'edit' && (Math.abs(this.state.drawComponentX) > this.state.canvasWidth / 30 && Math.abs(this.state.drawComponentY) > this.state.canvasHeight / 30)) {
+		if (this.props.mode === 'edit' && (Math.abs(this.state.drawComponentX) > 10 && Math.abs(this.state.drawComponentY) > 10) && e.button === 0) {
 			const increaseX = this.state.currentImage.width / this.state.canvasWidth;
 			const increaseY = this.state.currentImage.height / this.state.canvasHeight;
 			const noneCategory = this.state.categories.filter(x => x.name === 'None')[0];
@@ -338,8 +339,8 @@ export default class EditorCanvas extends React.Component {
 
 				this.state.subCircuits.push(subCircuit);
 			}
-		} else if (!this.state.mouseMoved) {
-			const rect = $('#editor-canvas')[0].getBoundingClientRect();
+		} else if (!this.state.mouseMoved && e.button === 0) {
+			const rect = this.canvas.getBoundingClientRect();
 			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
 			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
 
@@ -368,6 +369,58 @@ export default class EditorCanvas extends React.Component {
 					this.props.onComponentSelected(component);
 					this.props.onSubCircuitSelected(null);
 					break;
+				}
+			}
+			if (!changedSelectedComponent) {
+				let deselected = false;
+				if (this.props.showSubCircuits && this.state.selectedSubCircuitId !== -1) {
+					const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
+					const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
+					const px = e.pageX - rect.left - 20;
+					const py = e.pageY - rect.top - 20;
+
+					const subCircuit = this.state.subCircuits.filter(subCircuit => subCircuit.subCircuitId === this.state.selectedSubCircuitId)[0];
+
+					const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
+					const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
+					const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
+					const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
+
+					if (px < x || px > x + w || py < y || py > y + h) {
+						this.setState({
+							selectedSubCircuitId: -1
+						});
+						this.props.onSubCircuitSelected(null);
+						deselected = true;
+					}
+				}
+				if(!deselected) {
+					if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
+						const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
+						const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
+						const px = e.pageX - rect.left - 20;
+						const py = e.pageY - rect.top - 20;
+			
+						const backwardsSubCircuits = [...this.state.subCircuits].sort((a, b) => b.subCircuitId - a.subCircuitId);
+			
+						for (const subCircuit of backwardsSubCircuits) {
+							const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
+							const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
+							const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
+							const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
+			
+							if (px > x && px < x + w && py > y && py < y + h) {
+								if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
+									break;
+								}
+								this.setState({
+									selectedSubCircuitId: subCircuit.subCircuitId
+								});
+								this.props.onSubCircuitSelected(subCircuit);
+								break;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -405,7 +458,7 @@ export default class EditorCanvas extends React.Component {
 
 	onMouseMove(e) {
 		if (this.state.isMouseDown) {
-			const rect = $('#editor-canvas')[0].getBoundingClientRect();
+			const rect = this.canvas.getBoundingClientRect();
 
 			if ((this.props.mode === 'view' && this.state.currentMouseButton === 0) || (this.props.mode === 'edit' && this.state.currentMouseButton === 1)) {
 				const deltaX = ((e.pageX - rect.left) - this.state.deltaX) * (this.state.currentImage.width / this.state.canvasWidth) / this.state.scaleFactor;
@@ -440,7 +493,7 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	async onDoubleClick(e) {
-		const rect = $('#editor-canvas')[0].getBoundingClientRect();
+		const rect = this.canvas.getBoundingClientRect();
 		if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
 			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
 			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
@@ -457,7 +510,7 @@ export default class EditorCanvas extends React.Component {
 
 				if (px > x && px < x + w && py > y && py < y + h) {
 					this.setState({
-						loading: true
+						loadingDifferent: true
 					});
 
 					const components = await Api.api.circuit.getSubCircuitComponents({
@@ -469,15 +522,29 @@ export default class EditorCanvas extends React.Component {
 						subCircuitId: subCircuit.subCircuitId
 					});
 
+					if (sc.body.imageType === null) {
+						this.setState({
+							loadingDifferent: false
+						});
+						return;
+					}
+
 					this.setState({
 						components: components.body,
 						currentImage: null,
 						currentSubCircuit: subCircuit.subCircuitId,
 						currentSubCircuitImage: sc.body.image,
 						currentSubCircuitImageType: sc.body.imageType,
-						loading: false
+						loadingDifferent: false,
+						scaleFactor: 1,
+						viewerOffsetX: 0,
+						viewerOffsetY: 0,
+						selectedComponentId: -1,
+						selectedSubCircuitId: -1
 					});
 
+					this.props.onComponentSelected(null);
+					this.props.onSubCircuitSelected(null);
 					this.props.onSubCircuitChanged(subCircuit.subCircuitId);
 				}
 			}
@@ -487,47 +554,7 @@ export default class EditorCanvas extends React.Component {
 	onRightClick(e) {
 		e.preventDefault();
 
-		const rect = $('#editor-canvas')[0].getBoundingClientRect();
-		let changedSelectedSubCircuit = false;
-		let operated = false;
-		if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
-			const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
-			const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
-			const px = e.pageX - rect.left - 20;
-			const py = e.pageY - rect.top - 20;
-
-			const backwardsSubCircuits = [...this.state.subCircuits].sort((a, b) => b.subCircuitId - a.subCircuitId);
-
-			for (const subCircuit of backwardsSubCircuits) {
-				const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
-				const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
-				const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
-				const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
-
-				if (px > x && px < x + w && py > y && py < y + h) {
-					if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
-						operated = true;
-						break;
-					}
-					changedSelectedSubCircuit = true;
-					this.setState({
-						selectedSubCircuitId: subCircuit.subCircuitId
-					});
-					this.props.onSubCircuitSelected(subCircuit);
-					operated = true;
-					break;
-				}
-			}
-		}
-
-		if (!changedSelectedSubCircuit) {
-			this.setState({
-				selectedSubCircuitId: -1
-			});
-			this.props.onSubCircuitSelected(null);
-		}
-
-		if (!operated && this.state.currentSubCircuit === -1) {
+		if (this.state.currentSubCircuit === -1) {
 			this.setState({
 				contextMenuX: e.pageX,
 				contextMenuY: e.pageY
@@ -570,10 +597,13 @@ export default class EditorCanvas extends React.Component {
 	}
 
 	redraw() {
+		if (this.props.circuit === null) {
+			return;
+		}
 		setTimeout(() => {
 			window.requestAnimationFrame(() => {
-				const canvas = ReactDOM.findDOMNode(this);
-				if (canvas === null) {
+				const canvas = this.canvas;
+				if (!canvas) {
 					return;
 				}
 
@@ -705,9 +735,15 @@ export default class EditorCanvas extends React.Component {
 		if (this.state.loaded) {
 			return (
 				<>
+					{this.state.loadingDifferent && (
+						<div className="loading-overlay">
+							<CenteredSpinner size={150} />
+						</div>
+					)}
 					<canvas
-						id="editor-canvas"
 						tabIndex="0"
+						className="editor-canvas"
+						ref={canvas => this.canvas = canvas}
 						onMouseDownCapture={this.onMouseDown}
 						onMouseUpCapture={this.onMouseUp}
 						onMouseMoveCapture={this.onMouseMove}
@@ -726,7 +762,11 @@ export default class EditorCanvas extends React.Component {
 				</>
 			);
 		} else {
-			return (null);
+			return this.state.loadingDifferent ? (
+				<div className="loading-overlay">
+					<CenteredSpinner size={150} />
+				</div>
+			) : (null);
 		}
 	}
 };

@@ -13,7 +13,7 @@ export default class SubCircuitEditorInspector extends React.Component {
 		this.state = {
 			subCircuit: null,
 			loading: true,
-			imageWidth: null
+			imageWidth: 200
 		};
 
 		Api.api.circuit.getSubCircuit({
@@ -32,7 +32,7 @@ export default class SubCircuitEditorInspector extends React.Component {
 	}
 
 	componentDidUpdate() {
-		if (this.state.imageWidth === null) {
+		if (this.state.imageWidth === 200) {
 			this.setState({
 				imageWidth: $('#image').width()
 			});
@@ -97,7 +97,6 @@ export default class SubCircuitEditorInspector extends React.Component {
 				</div>
 			);
 		}
-		console.log(this.state.imageWidth);
 		return (
 			<>
 				<div className="inspector-menu">
@@ -116,7 +115,9 @@ export default class SubCircuitEditorInspector extends React.Component {
 									}}>
 										<FontAwesomeIcon icon={faCamera} size="6x" />
 									</div>
-									<img className="upload-image" src={'data:image/' + this.state.subCircuit.imageType + ';base64,' + this.state.subCircuit.image} width={this.state.imageWidth - 30} alt="subcircuit" onClick={this.upload} />
+									{this.state.subCircuit.imageType ? (
+										<img className="upload-image" src={'data:image/' + this.state.subCircuit.imageType + ';base64,' + this.state.subCircuit.image} width={this.state.imageWidth - 30} alt="subcircuit" onClick={this.upload} />
+									): (null)}
 								</Form.Group>
 							</Form>
 						</Col>
