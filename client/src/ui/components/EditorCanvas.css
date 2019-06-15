@@ -9,6 +9,10 @@
 	margin-top: -0.2rem;
 }
 
+.editor-canvas:focus {
+    outline-width: 0;
+}
+
 .editor-context-menu {
 	z-index: 99;
 }

@@ -29,6 +29,7 @@ export default class SubCircuitEditorInspector extends React.Component {
 		this.upload = this.upload.bind(this);
 		this.onChangeFile = this.onChangeFile.bind(this);
 		this.onClickDelete = this.onClickDelete.bind(this);
+		this.onClickMove = this.onClickMove.bind(this);
 	}
 
 	componentDidUpdate() {
@@ -51,6 +52,28 @@ export default class SubCircuitEditorInspector extends React.Component {
 		});
 
 		this.props.onSubCircuitUpdate(this.state.subCircuit, 'delete');
+	}
+
+	onClickMove() {
+		this.props.onSubCircuitUpdate(this.state.subCircuit, 'move').then(bounds => {
+			$.ajax({
+				method: 'POST',
+				url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit/' + this.state.subCircuit.subCircuitId,
+				contentType: 'application/json',
+				data: JSON.stringify({
+					bounds: bounds
+				})
+			});
+
+			const newSubCircuit = {
+				...this.state.subCircuit,
+				bounds: bounds
+			};
+			this.setState({
+				subCircuit: newSubCircuit
+			});
+			this.props.onSubCircuitUpdate(newSubCircuit);
+		});
 	}
 
 	upload() {
@@ -124,6 +147,7 @@ export default class SubCircuitEditorInspector extends React.Component {
 					</Row>
 					<Row>
 						<Col md={{ span: 10, offset: 1 }}>
+							<Button onClick={this.onClickMove} disabled={this.props.mode !== 'edit'}>Redraw</Button>
 							<Button variant="danger" onClick={this.onClickDelete} className="inspector-delete-button">Delete</Button>
 						</Col>
 					</Row>

@@ -41,10 +41,13 @@ export default class EditorCanvas extends React.Component {
 			searchText: '',
 			redrawCallback: null,
 			redrawComponent: -1,
+			redrawType: -1,
 			deltaX: 0,
 			deltaY: 0,
 			drawingSubCircuit: false,
-			loadingDifferent: false
+			loadingDifferent: false,
+			isDoubleClicking: false,
+			doubleClickTimeout: null
 		};
 
 		this.onMouseDown = this.onMouseDown.bind(this);
@@ -116,6 +119,14 @@ export default class EditorCanvas extends React.Component {
 		e.preventDefault();
 
 		if (e.key === 'Escape') {
+			if (this.state.drawComponentX !== -1 && this.state.drawComponentY !== -1) {
+				this.setState({
+					drawComponentX: -1,
+					drawComponentY: -1,
+					isMouseDown: false
+				});
+			}
+
 			if (this.state.selectedComponentId !== -1) {
 				const component = this.state.components.filter(component => component.componentId === this.state.selectedComponentId)[0];
 				if (component.designator === '' && component.name === '') {
@@ -179,7 +190,8 @@ export default class EditorCanvas extends React.Component {
 			return new Promise((resolve, reject) => {
 				this.setState({
 					redrawCallback: resolve,
-					redrawComponent: component.componentId
+					redrawComponent: component.componentId,
+					redrawType: 0
 				});
 			});
 		} else {
@@ -199,6 +211,19 @@ export default class EditorCanvas extends React.Component {
 			this.setState({
 				subCircuits: clone,
 				selectedSubCircuitId: -1
+			});
+		} else if (type === 'move') {
+			return new Promise((resolve, reject) => {
+				this.setState({
+					redrawCallback: resolve,
+					redrawComponent: subCircuit.subCircuitId,
+					redrawType: 1
+				});
+			});
+		} else {
+			clone[index] = subCircuit;
+			this.setState({
+				subCircuits: clone
 			});
 		}
 	}
@@ -276,7 +301,7 @@ export default class EditorCanvas extends React.Component {
 				height: h * increaseY / this.state.scaleFactor
 			};
 
-			if (!this.state.drawingSubCircuit) {
+			if (!this.state.drawingSubCircuit && this.state.redrawType !== 1) {
 				const component = {
 					documentationUrl: '',
 					bounds: bounds,
@@ -287,7 +312,7 @@ export default class EditorCanvas extends React.Component {
 					category: noneCategory
 				};
 
-				if (this.state.redrawCallback !== null) {
+				if (this.state.redrawType === 0) {
 					this.state.redrawCallback(component.bounds);
 				} else {
 					let url;
@@ -323,21 +348,25 @@ export default class EditorCanvas extends React.Component {
 					imageType: null
 				};
 
-				$.ajax({
-					method: 'POST',
-					url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit?side=' + this.props.side,
-					contentType: 'application/json',
-					data: JSON.stringify(subCircuit),
-					success: data => {
-						const clone = [...this.state.subCircuits];
-						clone[clone.length - 1] = data;
-						this.setState({
-							subCircuits: clone
-						});
-					}
-				});
+				if (this.state.redrawType === 1) {
+					this.state.redrawCallback(bounds);
+				} else {
+					$.ajax({
+						method: 'POST',
+						url: Api.prefix + '/api/v1/circuit/' + this.props.circuit.circuitId + '/subcircuit?side=' + this.props.side,
+						contentType: 'application/json',
+						data: JSON.stringify(subCircuit),
+						success: data => {
+							const clone = [...this.state.subCircuits];
+							clone[clone.length - 1] = data;
+							this.setState({
+								subCircuits: clone
+							});
+						}
+					});
 
-				this.state.subCircuits.push(subCircuit);
+					this.state.subCircuits.push(subCircuit);
+				}
 			}
 		} else if (!this.state.mouseMoved && e.button === 0) {
 			const rect = this.canvas.getBoundingClientRect();
@@ -391,32 +420,45 @@ export default class EditorCanvas extends React.Component {
 							selectedSubCircuitId: -1
 						});
 						this.props.onSubCircuitSelected(null);
-						deselected = true;
 					}
 				}
-				if(!deselected) {
+				if (!deselected) {
 					if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
 						const widthRatio = this.state.canvasWidth / this.state.currentImage.width;
 						const heightRatio = this.state.canvasHeight / this.state.currentImage.height;
 						const px = e.pageX - rect.left - 20;
 						const py = e.pageY - rect.top - 20;
-			
+
 						const backwardsSubCircuits = [...this.state.subCircuits].sort((a, b) => b.subCircuitId - a.subCircuitId);
-			
+
 						for (const subCircuit of backwardsSubCircuits) {
 							const x = (this.state.viewerOffsetX + subCircuit.bounds.x) * widthRatio * this.state.scaleFactor;
 							const y = (this.state.viewerOffsetY + subCircuit.bounds.y) * heightRatio * this.state.scaleFactor;
 							const w = subCircuit.bounds.width * widthRatio * this.state.scaleFactor;
 							const h = subCircuit.bounds.height * heightRatio * this.state.scaleFactor;
-			
+
 							if (px > x && px < x + w && py > y && py < y + h) {
-								if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
-									break;
+								if (this.state.isDoubleClicking) {
+									clearTimeout(this.state.doubleClickTimeout);
+									this.setState({
+										isDoubleClicking: false,
+										doubleClickTimeout: null
+									});
+									this.onDoubleClick(e);
+								} else {
+									this.setState({
+										isDoubleClicking: true,
+										doubleClickTimeout: setTimeout(() => {
+											this.setState({
+												selectedSubCircuitId: subCircuit.subCircuitId,
+												isDoubleClicking: false
+											});
+											this.props.onSubCircuitSelected(subCircuit);
+											deselected = true;
+										}, 200)
+									});
 								}
-								this.setState({
-									selectedSubCircuitId: subCircuit.subCircuitId
-								});
-								this.props.onSubCircuitSelected(subCircuit);
+
 								break;
 							}
 						}
@@ -442,7 +484,8 @@ export default class EditorCanvas extends React.Component {
 			newState = {
 				...newState,
 				redrawCallback: null,
-				redrawComponent: -1
+				redrawComponent: -1,
+				redrawType: -1
 			};
 		}
 		if (!changedSelectedComponent && !this.state.redrawCallback) {
@@ -702,6 +745,10 @@ export default class EditorCanvas extends React.Component {
 
 					if (this.props.showSubCircuits && this.state.currentSubCircuit === -1) {
 						for (const subCircuit of this.state.subCircuits) {
+							if(this.state.redrawComponent === subCircuit.subCircuitId) {
+								continue;
+							}
+							
 							if (this.state.selectedSubCircuitId === subCircuit.subCircuitId) {
 								ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
 							} else {
@@ -749,7 +796,6 @@ export default class EditorCanvas extends React.Component {
 						onMouseMoveCapture={this.onMouseMove}
 						onWheelCapture={this.onScroll}
 						onContextMenuCapture={this.onRightClick}
-						onDoubleClickCapture={this.onDoubleClick}
 						onKeyDown={this.onKeyPress} />
 					<ButtonGroup style={{
 						visibility: this.state.contextMenuX === -1 ? 'hidden' : 'visible',
