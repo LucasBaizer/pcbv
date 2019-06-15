@@ -6,12 +6,13 @@ env.config();
 var fs = require('fs');
 var path = require('path');
 var http = require('http');
+var https = require('https');
 var path = require('path');
 
 var app = require('connect')();
 var swaggerTools = require('swagger-tools');
 var jsyaml = require('js-yaml');
-var serverPort = process.env.DEVELOPMENT ? 8080 : 80;
+var serverPort = process.env.DEVELOPMENT ? 8080 : 443;
 var bodyParser = require('body-parser');
 
 // swaggerRouter configuration
@@ -72,8 +73,16 @@ swaggerTools.initializeMiddleware(swaggerDoc, function (middleware) {
 	app.use(middleware.swaggerUi());
 
 	// Start the server
-	http.createServer(app).listen(serverPort, function () {
+	var callback = function () {
 		console.log('Your server is listening on port %d (http://localhost:%d)', serverPort, serverPort);
 		console.log('Swagger-ui is available on http://localhost:%d/docs', serverPort);
-	});
+	};
+	if(process.env.DEVELOPMENT) {
+		http.createServer(app).listen(serverPort, callback);
+	} else {
+		https.createServer({
+			cert: fs.readFileSync("/etc/letsencrypt/live/pcbv.lucasbaizer.dev/fullchain.pem"),
+			key: fs.readFileSync("/etc/letsencrypt/live/pcbv.lucasbaizer.dev/privkey.pem"),
+		}, app).listen(serverPort, callback);
+	}
 });
